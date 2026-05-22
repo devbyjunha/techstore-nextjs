@@ -17,9 +17,10 @@ import {
   Smartphone,
   Tablet,
   Headphones,
+  Shield,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
-import { products } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
 import type { Product } from '@/types';
 
 const CATEGORIES = [
@@ -39,6 +40,7 @@ export default function GNB() {
   const notificationRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { products } = useProducts();
   const {
     state,
     dispatch,
@@ -350,6 +352,15 @@ export default function GNB() {
 
             <Link href="/mypage" className={iconButtonClass} title="마이페이지">
               <User size={22} />
+            </Link>
+
+            <Link
+              href="/admin"
+              className="hidden items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-600 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 sm:inline-flex"
+              title="관리자 페이지"
+            >
+              <Shield size={18} />
+              <span className="hidden md:inline">관리자</span>
             </Link>
 
             {state.user.isLoggedIn ? (

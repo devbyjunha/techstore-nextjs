@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/context/StoreContext";
+import { ProductsProvider } from "@/context/ProductsContext";
 import AmplitudeProvider from "@/components/AmplitudeProvider";
 import BrazeProvider from "@/components/BrazeProvider";
-import GNB from "@/components/GNB";
-import Footer from "@/components/Footer";
-import ToastWrapper from "@/components/ToastWrapper";
+import AppShell from "@/components/AppShell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -26,14 +25,9 @@ export default function RootLayout({
         <AmplitudeProvider>
         <BrazeProvider>
           <StoreProvider>
-            <div className="min-h-screen flex flex-col">
-              <GNB />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-              <ToastWrapper />
-            </div>
+            <ProductsProvider>
+              <AppShell>{children}</AppShell>
+            </ProductsProvider>
           </StoreProvider>
         </BrazeProvider>
         </AmplitudeProvider>

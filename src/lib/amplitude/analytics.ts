@@ -70,7 +70,7 @@ export async function syncUserViaAmplitudeApi(params: {
   eventName?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch('/api/amplitude/track', {
+    const response = await fetch('/api/2/httpapi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

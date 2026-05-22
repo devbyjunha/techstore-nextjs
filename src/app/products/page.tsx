@@ -4,10 +4,11 @@ import { Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Sparkles, Tag } from 'lucide-react';
-import { products } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
+import { useProducts } from '@/context/ProductsContext';
 
 function ProductsPageContent() {
+  const { products } = useProducts();
   const router = useRouter();
   const searchParams = useSearchParams();
   const saleOnly = searchParams.get('sale') === 'true';

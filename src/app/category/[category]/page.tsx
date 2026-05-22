@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { products } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import { Product } from '@/types';
+import { useProducts } from '@/context/ProductsContext';
 
 export default function CategoryPage() {
+  const { products } = useProducts();
   const params = useParams();
   const category = params.category as string;
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -61,7 +62,7 @@ export default function CategoryPage() {
     });
 
     setFilteredProducts(filtered);
-  }, [category, koreanCategory, sortBy, sortOrder, showSaleOnly]);
+  }, [category, koreanCategory, sortBy, sortOrder, showSaleOnly, products]);
 
   const handleSortChange = (newSortBy: 'name' | 'price' | 'rating') => {
     if (sortBy === newSortBy) {

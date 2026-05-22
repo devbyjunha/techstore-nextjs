@@ -5,14 +5,15 @@ import Image from 'next/image';
 import { Heart, Star, ShoppingCart, CreditCard, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { products } from '@/data/products';
 import { useStore } from '@/context/StoreContext';
+import { useProducts } from '@/context/ProductsContext';
 import { useAmplitude } from '@/hooks/useAmplitude';
 import { useBraze } from '@/hooks/useBraze';
 
 export default function ProductDetail() {
   const params = useParams();
   const router = useRouter();
+  const { products } = useProducts();
   const { state, dispatch } = useStore();
   const { trackProductView: trackBrazeProductView } = useBraze();
   const { trackProductView: trackAmplitudeProductView } = useAmplitude();

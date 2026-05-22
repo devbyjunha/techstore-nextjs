@@ -4,9 +4,9 @@ import { useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Shield, Truck, Sparkles, Bell } from 'lucide-react';
-import { products } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
 import { useStore } from '@/context/StoreContext';
+import { useProducts } from '@/context/ProductsContext';
 
 const TRUST_BADGES = [
   { icon: Truck, label: '무료 배송', desc: '5만원 이상 주문 시' },
@@ -17,6 +17,7 @@ const TRUST_BADGES = [
 const FEATURED_COUNT = 8;
 
 export default function Home() {
+  const { products } = useProducts();
   const productsSectionRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { addNotification } = useStore();

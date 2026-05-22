@@ -2,11 +2,12 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { products } from '@/data/products';
 import ProductCard from '@/components/ProductCard';
+import { useProducts } from '@/context/ProductsContext';
 import { Search, X } from 'lucide-react';
 
 function SearchPageContent() {
+  const { products } = useProducts();
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const [searchResults, setSearchResults] = useState(products);
@@ -23,7 +24,7 @@ function SearchPageContent() {
     } else {
       setSearchResults(products);
     }
-  }, [query]);
+  }, [query, products]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

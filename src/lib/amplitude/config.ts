@@ -2,6 +2,8 @@ export interface AmplitudeClientConfig {
   apiKey: string;
   enableLogging: boolean;
   serverZone: 'US' | 'EU';
+  /** pageViews / sessions 자동 수집 (기본 false — 네트워크 실패 시 콘솔 오류 감소) */
+  autotrack: boolean;
   enabled: boolean;
 }
 
@@ -12,17 +14,22 @@ export interface AmplitudeServerConfig {
 }
 
 export function getAmplitudeClientConfig(): AmplitudeClientConfig {
-  const apiKey = process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY ?? '';
+  const apiKey = (process.env.NEXT_PUBLIC_AMPLITUDE_API_KEY ?? '').trim();
+  const explicitlyDisabled =
+    process.env.NEXT_PUBLIC_AMPLITUDE_DISABLED === 'true';
   const enableLogging =
     process.env.NEXT_PUBLIC_AMPLITUDE_ENABLE_LOGGING === 'true';
   const serverZone =
     process.env.NEXT_PUBLIC_AMPLITUDE_SERVER_ZONE === 'EU' ? 'EU' : 'US';
+  const autotrack =
+    process.env.NEXT_PUBLIC_AMPLITUDE_AUTOTRACK === 'true';
 
   return {
     apiKey,
     enableLogging,
     serverZone,
-    enabled: Boolean(apiKey),
+    autotrack,
+    enabled: !explicitlyDisabled && apiKey.length >= 8,
   };
 }
 

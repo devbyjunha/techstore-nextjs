@@ -35,7 +35,7 @@
 
 ## 기술 스택
 
-### Next.js 15 (App Router)
+### Next.js 16 (App Router)
 
 - **역할:** React 프레임워크 + 라우팅 + 서버/클라이언트 경계
 - **App Router:** `src/app/` 아래 폴더 구조가 URL이 됨 (`page.tsx` = 페이지, `layout.tsx` = 공통 레이아웃)
@@ -99,8 +99,9 @@ flowchart TB
   end
 
   subgraph nextServer [Next.js 서버 - 백엔드]
-    ApiAmp["POST /api/amplitude/track"]
-    ApiBraze["POST /api/braze/track"]
+    ApiAmp["POST /api/2/httpapi"]
+    ApiBraze["POST /api/users/track"]
+    ApiV1["GET /api/v1/*"]
     AmpServer["lib/amplitude/server"]
     BrazeServer["lib/braze/server"]
     ApiAmp --> AmpServer
@@ -141,8 +142,9 @@ flowchart TB
 
 | 경로 | 설명 |
 |------|------|
-| `src/app/api/amplitude/track/route.ts` | Amplitude 서버 전송 프록시 |
-| `src/app/api/braze/track/route.ts` | Braze Users Track REST 프록시 |
+| `src/app/api/2/httpapi/route.ts` | Amplitude HTTP V2 (`/2/httpapi`) 프록시 |
+| `src/app/api/users/track/route.ts` | Braze Users Track (`/users/track`) 프록시 |
+| `src/app/api/v1/**` | TechStore 공개 REST API (Webhook·외부 연동) |
 | `src/lib/amplitude/server.ts` | Amplitude HTTP API (`/2/httpapi`) 호출 |
 | `src/lib/braze/server.ts` | Braze `/users/track` 호출 |
 
@@ -167,8 +169,9 @@ techstore-nextjs/
 ├── src/
 │   ├── app/                # Next.js App Router
 │   │   ├── api/            # 백엔드 API Routes
-│   │   │   ├── amplitude/track/route.ts
-│   │   │   └── braze/track/route.ts
+│   │   │   ├── 2/httpapi/route.ts
+│   │   │   ├── users/track/route.ts
+│   │   │   └── v1/               # health, products, webhooks/braze
 │   │   ├── layout.tsx      # 루트 레이아웃 (GNB, Footer, Providers)
 │   │   ├── page.tsx        # 홈 (/)
 │   │   ├── globals.css
@@ -214,8 +217,44 @@ techstore-nextjs/
 | `/search` | `app/search/page.tsx` | 검색 |
 | `/login` | `app/login/page.tsx` | 로그인 (데모) + 서버 API 동기화 |
 | `/mypage` | `app/mypage/page.tsx` | 마이페이지 |
-| `POST /api/amplitude/track` | `app/api/amplitude/track/route.ts` | 서버 → Amplitude 이벤트 전송 |
-| `POST /api/braze/track` | `app/api/braze/track/route.ts` | 서버 → Braze Users Track |
+| `POST /api/2/httpapi` | `app/api/2/httpapi/route.ts` | Amplitude HTTP V2 (공식 경로와 동일) |
+| `POST /api/users/track` | `app/api/users/track/route.ts` | Braze Users Track (공식 경로와 동일) |
+| `GET /api/v1/health` | `app/api/v1/health/route.ts` | 헬스체크 (Webhook 연결 테스트) |
+| `GET /api/v1/products` | `app/api/v1/products/route.ts` | 상품 목록 |
+| `GET /api/v1/products/:productId` | `app/api/v1/products/[productId]/route.ts` | 상품 단건 |
+| `GET /api/v1/categories` | `app/api/v1/categories/route.ts` | 카테고리 목록 |
+| `POST /api/v1/webhooks/braze` | `app/api/v1/webhooks/braze/route.ts` | Braze Webhook Campaign 수신 |
+
+---
+
+## 내부·관리자 API (Public API 아님)
+
+| 경로 | 용도 |
+|------|------|
+| `POST /api/users/track` | 쇼핑몰 → Braze 연동 (서버 env 키) |
+| `POST /api/2/httpapi` | 쇼핑몰 → Amplitude 연동 (서버 env 키) |
+| `POST /api/admin/proxy` | 관리자 API 테스트 UI용 릴레이 (Postman 대체) |
+
+`/api/admin/proxy` 상세 (CORS, 프록시가 필요한 이유) → **[ADMIN-PROXY.md](./ADMIN-PROXY.md)**  
+관리자 UI: `/admin/proxy-guide` · API 문서: `/admin/api-docs`
+
+---
+
+## TechStore Public API (`/api/v1`)
+
+Braze Webhook Campaign 등 **외부에서 TechStore 데이터를 조회**하거나 **웹훅을 수신**할 때 사용합니다.
+
+- 인증: `.env`에 `TECHSTORE_API_KEY` 설정 시 `Authorization: Bearer <key>` 또는 `X-Api-Key` 필요
+- Braze Webhook: `BRAZE_WEBHOOK_SECRET` 설정 시 `X-Braze-Webhook-Secret` 헤더 필요
+
+예시 (로컬):
+
+```bash
+curl http://localhost:3000/api/v1/health
+curl "http://localhost:3000/api/v1/products?category=laptop&limit=5" -H "Authorization: Bearer YOUR_KEY"
+curl http://localhost:3000/api/v1/products/1 -H "X-Api-Key: YOUR_KEY"
+curl -X POST http://localhost:3000/api/v1/webhooks/braze -H "Content-Type: application/json" -d '{"external_id":"user_1"}'
+```
 
 ---
 

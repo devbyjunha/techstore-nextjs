@@ -5,9 +5,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Trash2, ArrowLeft, ShoppingBag, CreditCard } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
-import { products } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
 
 export default function CartPage() {
+  const { products } = useProducts();
   const { state, dispatch, addToast } = useStore();
 
   const handleUpdateQuantity = (productId: string, quantity: number) => {

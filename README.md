@@ -8,6 +8,7 @@ Amplitude·Braze 연동이 포함된 Next.js 테크 쇼핑몰 데모입니다.
 |------|------|
 | **이 README** | 빠른 실행, npm·Git 명령어 |
 | **[docs/PROJECT.md](./docs/PROJECT.md)** | 프로젝트 구조, 프론트/백엔드 구분, 환경 변수·Analytics 상세, Next.js/Jest 설명 |
+| **[docs/ADMIN-PROXY.md](./docs/ADMIN-PROXY.md)** | `/api/admin/proxy` 동작 원리 (CORS, 릴레이 역할, 다른 API와 차이) |
 | **[.env.example](./.env.example)** | 환경 변수 키 목록 (값은 로컬 `.env.local`에만 입력) |
 
 상세한 아키텍처·환경 변수 설명은 README보다 **`docs/PROJECT.md`** 에 두는 것을 권장합니다. GitHub 저장소 첫 화면은 README만 보이므로, 여기서는 요약과 링크만 제공합니다.
@@ -76,7 +77,7 @@ npm -v
 
 > PATH를 수정했다면 **새 터미널**을 열거나 `source ~/.zshrc` 후 다시 시도하세요.
 
-Next.js 15는 프로젝트 의존성으로 `npm install` 시 함께 설치됩니다. 전역 `npm install -g next`는 **필수가 아닙니다**.
+Next.js 16은 프로젝트 의존성으로 `npm install` 시 함께 설치됩니다. 전역 `npm install -g next`는 **필수가 아닙니다**.
 
 ---
 

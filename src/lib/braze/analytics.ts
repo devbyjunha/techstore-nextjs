@@ -62,7 +62,7 @@ export async function syncUserViaBrazeApi(params: {
   eventName?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const response = await fetch('/api/braze/track', {
+    const response = await fetch('/api/users/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

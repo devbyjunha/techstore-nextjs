@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 import GNB from '../GNB';
 import { StoreProvider } from '@/context/StoreContext';
+import { ProductsProvider } from '@/context/ProductsContext';
 
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
@@ -45,9 +46,9 @@ const mockRouter = {
 
 const renderWithProvider = (component: React.ReactElement) => {
   return render(
-    <StoreProvider>
-      {component}
-    </StoreProvider>
+    <ProductsProvider>
+      <StoreProvider>{component}</StoreProvider>
+    </ProductsProvider>
   );
 };
 
@@ -71,6 +72,7 @@ describe('GNB Component', () => {
     expect(getSearchInput()).toBeInTheDocument();
     expect(screen.getByTitle('알림')).toBeInTheDocument();
     expect(screen.getByText('로그인')).toBeInTheDocument();
+    expect(screen.getByTitle('관리자 페이지')).toBeInTheDocument();
   });
 
   it('should handle search input', async () => {

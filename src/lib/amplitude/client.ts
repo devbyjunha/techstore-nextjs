@@ -12,6 +12,7 @@ type AmplitudeBrowser = typeof import('@amplitude/analytics-browser');
 
 let amplitudeModule: AmplitudeBrowser | null = null;
 let isInitialized = false;
+let initFailed = false;
 
 async function loadAmplitudeModule(): Promise<AmplitudeBrowser | null> {
   if (typeof window === 'undefined') {
@@ -29,61 +30,83 @@ export function isAmplitudeClientEnabled(): boolean {
   return getAmplitudeClientConfig().enabled;
 }
 
+/** init 성공 후에만 이벤트 전송 */
+export function isAmplitudeReady(): boolean {
+  return isInitialized && !initFailed;
+}
+
 export async function initializeAmplitude(): Promise<boolean> {
   const config = getAmplitudeClientConfig();
-  if (!config.enabled || isInitialized) {
-    return isInitialized;
-  }
-
-  const amplitude = await loadAmplitudeModule();
-  if (!amplitude) {
+  if (!config.enabled) {
     return false;
   }
 
-  const { LogLevel } = await import('@amplitude/analytics-core');
-
-  amplitude.init(config.apiKey, undefined, {
-    serverZone: config.serverZone,
-    logLevel: config.enableLogging ? LogLevel.Debug : LogLevel.Warn,
-    defaultTracking: {
-      sessions: true,
-      pageViews: true,
-      formInteractions: false,
-      fileDownloads: false,
-    },
-  });
-
-  isInitialized = true;
-
-  if (process.env.NODE_ENV === 'development') {
-    (window as Window & { amplitude?: AmplitudeBrowser }).amplitude = amplitude;
+  if (isInitialized) {
+    return !initFailed;
   }
 
-  return true;
+  if (initFailed) {
+    return false;
+  }
+
+  try {
+    const amplitude = await loadAmplitudeModule();
+    if (!amplitude) {
+      return false;
+    }
+
+    const { LogLevel } = await import('@amplitude/analytics-core');
+
+    amplitude.init(config.apiKey, undefined, {
+      serverZone: config.serverZone,
+      logLevel: config.enableLogging ? LogLevel.Debug : LogLevel.None,
+      defaultTracking: config.autotrack
+        ? {
+            sessions: true,
+            pageViews: true,
+            formInteractions: false,
+            fileDownloads: false,
+          }
+        : false,
+    });
+
+    isInitialized = true;
+    initFailed = false;
+
+    if (process.env.NODE_ENV === 'development') {
+      (window as Window & { amplitude?: AmplitudeBrowser }).amplitude = amplitude;
+    }
+
+    return true;
+  } catch (error) {
+    initFailed = true;
+    isInitialized = false;
+
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '[Amplitude] 초기화 실패 — 이벤트 전송을 건너뜁니다.',
+        error instanceof Error ? error.message : error
+      );
+    }
+
+    return false;
+  }
 }
 
 export async function setAmplitudeUserId(userId: string): Promise<void> {
-  if (!isInitialized) {
-    return;
-  }
+  if (!isAmplitudeReady()) return;
 
   const amplitude = await loadAmplitudeModule();
-  if (!amplitude) {
-    return;
-  }
+  if (!amplitude) return;
 
   amplitude.setUserId(userId);
 }
 
 export async function clearAmplitudeUser(): Promise<void> {
-  if (!isInitialized) {
-    return;
-  }
+  if (!isAmplitudeReady()) return;
 
   const amplitude = await loadAmplitudeModule();
-  if (!amplitude) {
-    return;
-  }
+  if (!amplitude) return;
 
   amplitude.reset();
 }
@@ -92,16 +115,16 @@ export async function trackAmplitudeEvent(
   eventName: AmplitudeEventName,
   properties?: Record<string, string | number | boolean>
 ): Promise<void> {
-  if (!isInitialized) {
-    return;
-  }
+  if (!isAmplitudeReady()) return;
 
   const amplitude = await loadAmplitudeModule();
-  if (!amplitude) {
-    return;
-  }
+  if (!amplitude) return;
 
-  amplitude.track(eventName, properties);
+  try {
+    amplitude.track(eventName, properties);
+  } catch {
+    // 네트워크 차단·SDK 재시도 실패 시 앱 동작은 유지
+  }
 }
 
 export async function trackAmplitudeProductView(product: Product): Promise<void> {

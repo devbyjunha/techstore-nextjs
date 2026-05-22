@@ -4,7 +4,13 @@ import {
   AmplitudeServerEvent,
 } from '@/lib/amplitude/server';
 
-function isValidPayload(body: unknown): body is { events: AmplitudeServerEvent[] } {
+/**
+ * Amplitude HTTP V2 API equivalent: POST /2/httpapi
+ * @see https://amplitude.com/docs/apis/analytics/http-v2
+ */
+function isValidPayload(
+  body: unknown
+): body is { api_key?: string; events: AmplitudeServerEvent[] } {
   if (!body || typeof body !== 'object') {
     return false;
   }
@@ -36,7 +42,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: result.data });
   } catch {
     return NextResponse.json(
-      { error: 'Failed to process Amplitude track request' },
+      { error: 'Failed to process 2/httpapi request' },
       { status: 500 }
     );
   }

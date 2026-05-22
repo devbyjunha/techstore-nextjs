@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { useParams } from 'next/navigation';
 import CategoryPage from '../page';
 import { StoreProvider } from '@/context/StoreContext';
+import { ProductsProvider } from '@/context/ProductsContext';
 
 // Mock Next.js navigation
 jest.mock('next/navigation', () => ({
@@ -70,9 +71,9 @@ const mockParams = {
 
 const renderWithProvider = (component: React.ReactElement) => {
   return render(
-    <StoreProvider>
-      {component}
-    </StoreProvider>
+    <ProductsProvider>
+      <StoreProvider>{component}</StoreProvider>
+    </ProductsProvider>
   );
 };
 

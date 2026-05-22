@@ -6,10 +6,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Trash2, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
-import { products } from '@/data/products';
+import { useProducts } from '@/context/ProductsContext';
 import { Product } from '@/types';
 
 export default function WishlistPage() {
+  const { products } = useProducts();
   const { state, dispatch, addToast } = useStore();
 
   const handleRemoveFromWishlist = (productId: string) => {
