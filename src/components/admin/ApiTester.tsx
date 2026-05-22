@@ -25,6 +25,25 @@ interface ApiTesterProps {
 
 const STORAGE_PREFIX = 'techstore-api-tester';
 
+interface StoredTesterSettings {
+  endpoint?: string;
+  bearerToken?: string;
+  apiKey?: string;
+  selectedId?: string;
+  /** API id별 마지막 Request Body */
+  requestBodies?: Record<string, string>;
+}
+
+function readStoredSettings(key: string): StoredTesterSettings {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return {};
+    return JSON.parse(raw) as StoredTesterSettings;
+  } catch {
+    return {};
+  }
+}
+
 function buildUrl(
   base: string,
   path: string,
@@ -73,6 +92,7 @@ export default function ApiTester({
   const [response, setResponse] = useState<ApiProxyResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const categories = useMemo(
     () => ['all', ...new Set(catalog.map((e) => e.category))],
@@ -103,53 +123,96 @@ export default function ApiTester({
     }
   }, [endpoint, path, selectedEndpoint?.sampleQuery]);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved) as {
-          endpoint?: string;
-          bearerToken?: string;
-          apiKey?: string;
-          selectedId?: string;
-        };
-        if (parsed.endpoint) setEndpoint(parsed.endpoint);
-        if (parsed.bearerToken) setBearerToken(parsed.bearerToken);
-        if (parsed.apiKey) setApiKey(parsed.apiKey);
-        if (parsed.selectedId && catalog.some((e) => e.id === parsed.selectedId)) {
-          setSelectedId(parsed.selectedId);
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }, [storageKey, catalog]);
-
-  const applyEndpoint = useCallback((item: ApiEndpointDefinition) => {
+  const applyEndpointSample = useCallback((item: ApiEndpointDefinition) => {
     setMethod(item.method);
     setPath(item.path);
     if (item.sampleBody) {
       setRequestBody(formatJson(item.sampleBody));
     } else if (item.method === 'GET' || item.method === 'DELETE') {
       setRequestBody('');
+    } else {
+      setRequestBody('');
     }
   }, []);
 
+  const persistSettings = useCallback(
+    (bodyOverride?: string) => {
+      const stored = readStoredSettings(storageKey);
+      const bodies = { ...stored.requestBodies };
+      if (selectedId) {
+        bodies[selectedId] = bodyOverride ?? requestBody;
+      }
+      const next: StoredTesterSettings = {
+        endpoint,
+        bearerToken,
+        apiKey,
+        selectedId,
+        requestBodies: bodies,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(next));
+    },
+    [storageKey, endpoint, bearerToken, apiKey, selectedId, requestBody]
+  );
+
   useEffect(() => {
+    if (!catalog.length) return;
+
+    const stored = readStoredSettings(storageKey);
+    if (stored.endpoint) setEndpoint(stored.endpoint);
+    if (stored.bearerToken) setBearerToken(stored.bearerToken);
+    if (stored.apiKey) setApiKey(stored.apiKey);
+
+    const initialId =
+      stored.selectedId && catalog.some((e) => e.id === stored.selectedId)
+        ? stored.selectedId
+        : catalog[0].id;
+    setSelectedId(initialId);
+
+    const item = catalog.find((e) => e.id === initialId);
+    const savedBody = stored.requestBodies?.[initialId];
+    if (item) {
+      setMethod(item.method);
+      setPath(item.path);
+      if (savedBody !== undefined) {
+        setRequestBody(savedBody);
+      } else {
+        applyEndpointSample(item);
+      }
+    }
+
+    setHydrated(true);
+  }, [storageKey, catalog, applyEndpointSample]);
+
+  useEffect(() => {
+    if (!hydrated || !catalog.length) return;
+
     const item = catalog.find((e) => e.id === selectedId);
-    if (item) applyEndpoint(item);
-  }, [selectedId, catalog, applyEndpoint]);
+    if (!item) return;
+
+    const stored = readStoredSettings(storageKey);
+    const savedBody = stored.requestBodies?.[selectedId];
+
+    setMethod(item.method);
+    setPath(item.path);
+    if (savedBody !== undefined) {
+      setRequestBody(savedBody);
+    } else {
+      applyEndpointSample(item);
+    }
+  }, [selectedId, catalog, hydrated, storageKey, applyEndpointSample]);
 
   const handleSelectEndpoint = (id: string) => {
+    if (hydrated && selectedId) {
+      persistSettings();
+    }
     setSelectedId(id);
   };
 
-  const persistSettings = () => {
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify({ endpoint, bearerToken, apiKey, selectedId })
-    );
-  };
+  useEffect(() => {
+    if (!hydrated) return;
+    const timer = window.setTimeout(() => persistSettings(), 400);
+    return () => window.clearTimeout(timer);
+  }, [bearerToken, apiKey, endpoint, requestBody, hydrated, persistSettings]);
 
   const injectApiKey = (rawBody: string): string => {
     if (!apiKey.trim() || provider !== 'amplitude') return rawBody;
@@ -384,9 +447,9 @@ export default function ApiTester({
             <textarea
               value={requestBody}
               onChange={(e) => setRequestBody(e.target.value)}
-              rows={12}
+              rows={24}
               placeholder='{ "key": "value" }'
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              className="min-h-[480px] w-full resize-y rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm focus:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               spellCheck={false}
             />
           </div>
@@ -453,14 +516,14 @@ export default function ApiTester({
 
               <div>
                 <p className="mb-1 text-xs font-medium text-slate-500">Response Headers</p>
-                <pre className="max-h-32 overflow-auto rounded-lg bg-slate-50 p-3 font-mono text-xs text-slate-700">
+                <pre className="min-h-[320px] max-h-[520px] resize-y overflow-auto rounded-lg bg-slate-50 p-3 font-mono text-xs text-slate-700">
                   {formatJson(response.headers)}
                 </pre>
               </div>
 
               <div>
                 <p className="mb-1 text-xs font-medium text-slate-500">Response Body</p>
-                <pre className="max-h-[480px] overflow-auto rounded-lg bg-slate-950 p-4 font-mono text-xs text-emerald-300">
+                <pre className="min-h-[280px] max-h-[min(640px,70vh)] resize-y overflow-auto rounded-lg bg-slate-950 p-4 font-mono text-xs text-emerald-300">
                   {typeof response.data === 'string'
                     ? response.data
                     : formatJson(response.data)}
@@ -490,8 +553,10 @@ export default function ApiTester({
         </p>
       </div>
       <p className="text-xs text-slate-500">
-        API Key는 브라우저 localStorage에 저장됩니다. 요청은 서버 프록시를 통해
-        braze.com / amplitude.com 도메인으로만 전달됩니다.
+        Bearer API Key·Request Body·Endpoint는 브라우저 localStorage(
+        <code className="rounded bg-slate-100 px-1">{storageKey}</code>)에 저장되며,
+        새로고침 후 마지막 값이 복원됩니다. 요청은 서버 프록시를 통해 braze.com /
+        amplitude.com 도메인으로만 전달됩니다.
       </p>
     </div>
   );
