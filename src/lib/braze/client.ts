@@ -2,7 +2,7 @@
 
 import { getBrazeClientConfig } from './config';
 import { isLocalEnv } from '@/lib/app-env';
-import { BRAZE_EVENTS, BrazeEventName, productEventProperties } from './events';
+import { BRAZE_EVENTS, BrazeEventName } from './events';
 import {
   ECOMMERCE_EVENTS,
   EcommerceEventName,
@@ -124,10 +124,6 @@ export async function logBrazeCustomEvent(
   braze.logCustomEvent(eventName, properties);
 }
 
-export async function logBrazeProductView(product: Product): Promise<void> {
-  await logBrazeCustomEvent(BRAZE_EVENTS.PRODUCT_VIEWED, productEventProperties(product));
-}
-
 /**
  * Logs a Braze eCommerce recommended event.
  *
@@ -212,17 +208,6 @@ export async function logBrazeOrderRefunded(params: {
   await logBrazeEcommerceEvent(
     ECOMMERCE_EVENTS.ORDER_REFUNDED,
     buildOrderRefundedProperties(params)
-  );
-}
-
-export async function logBrazeAddToCart(product: Product): Promise<void> {
-  await logBrazeCustomEvent(BRAZE_EVENTS.ADDED_TO_CART, productEventProperties(product));
-}
-
-export async function logBrazeAddToWishlist(product: Product): Promise<void> {
-  await logBrazeCustomEvent(
-    BRAZE_EVENTS.ADDED_TO_WISHLIST,
-    productEventProperties(product)
   );
 }
 

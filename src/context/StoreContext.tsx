@@ -267,22 +267,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, baseDispatch] = useReducer(storeReducer, initialState);
 
   const dispatch = useCallback((action: StoreAction) => {
+    if (action.type === 'CLEAR_CART' && state.cartId) {
+      void logBrazeCartUpdated({ cartId: state.cartId, cart: [] });
+    }
     baseDispatch(action);
     void trackStoreAction(action);
     void trackAmplitudeStoreAction(action);
-  }, []);
+  }, [state.cartId]);
 
-  // Fire `ecommerce.cart_updated` (full cart replacement) whenever the cart
-  // contents change. We send the complete cart so the Braze cart object stays
-  // consistent. The first render and empty-cart transitions are skipped to
-  // avoid invalid payloads (the cart object is cleared by order/clear flows).
+  // Fire `ecommerce.cart_updated` whenever cart contents change (including empty cart).
   const cartHydrated = useRef(false);
   useEffect(() => {
     if (!cartHydrated.current) {
       cartHydrated.current = true;
       return;
     }
-    if (state.cart.length === 0 || !state.cartId) {
+    if (!state.cartId) {
       return;
     }
     void logBrazeCartUpdated({ cartId: state.cartId, cart: state.cart });
