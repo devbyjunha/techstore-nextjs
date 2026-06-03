@@ -4,16 +4,29 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useReducer,
+  useRef,
   ReactNode,
 } from 'react';
-import { Product, CartItem, WishlistItem, Notification } from '@/types';
+// NOTE: useRef is retained for the cart-hydration guard only (cartHydrated).
+import { Product, CartItem, WishlistItem, Notification, Order } from '@/types';
 import { Toast } from '@/components/Toast';
 import { trackAmplitudeStoreAction } from '@/lib/amplitude/analytics';
 import { trackStoreAction } from '@/lib/braze/analytics';
+import {
+  logBrazeCartUpdated,
+  logBrazeCheckoutStarted,
+  logBrazeOrderCancelled,
+  logBrazeOrderPlaced,
+  logBrazeOrderRefunded,
+} from '@/lib/braze/client';
 
 interface StoreState {
   cart: CartItem[];
+  cartId: string;
+  checkoutId: string;
+  orders: Order[];
   wishlist: WishlistItem[];
   user: {
     isLoggedIn: boolean;
@@ -22,6 +35,14 @@ interface StoreState {
   };
   toasts: Toast[];
   notifications: Notification[];
+}
+
+function generateId(prefix: string): string {
+  return `${prefix}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function cartTotal(cart: CartItem[]): number {
+  return cart.reduce((total, item) => total + item.product.price * item.quantity, 0);
 }
 
 type StoreAction =
@@ -33,6 +54,10 @@ type StoreAction =
   | { type: 'LOGIN'; payload: { name: string; email: string } }
   | { type: 'LOGOUT' }
   | { type: 'CLEAR_CART' }
+  | { type: 'START_CHECKOUT'; payload: { checkoutId: string } }
+  | { type: 'PLACE_ORDER'; payload: Order }
+  | { type: 'CANCEL_ORDER'; payload: { orderId: string } }
+  | { type: 'REFUND_ORDER'; payload: { orderId: string } }
   | { type: 'ADD_TOAST'; payload: Toast }
   | { type: 'REMOVE_TOAST'; payload: string }
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
@@ -42,6 +67,9 @@ type StoreAction =
 
 const initialState: StoreState = {
   cart: [],
+  cartId: '',
+  checkoutId: '',
+  orders: [],
   wishlist: [],
   user: {
     isLoggedIn: false,
@@ -55,10 +83,14 @@ const initialState: StoreState = {
 function storeReducer(state: StoreState, action: StoreAction): StoreState {
   switch (action.type) {
     case 'ADD_TO_CART': {
+      // A cart_id is shared across cart, checkout, and order events. Create one
+      // lazily when the cart goes from empty to non-empty.
+      const cartId = state.cartId || generateId('cart');
       const existingItem = state.cart.find(item => item.product.id === action.payload.id);
       if (existingItem) {
         return {
           ...state,
+          cartId,
           cart: state.cart.map(item =>
             item.product.id === action.payload.id
               ? { ...item, quantity: item.quantity + 1 }
@@ -68,6 +100,7 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
       }
       return {
         ...state,
+        cartId,
         cart: [...state.cart, { product: action.payload, quantity: 1 }]
       };
     }
@@ -126,7 +159,44 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
     case 'CLEAR_CART':
       return {
         ...state,
-        cart: []
+        cart: [],
+        cartId: '',
+        checkoutId: ''
+      };
+
+    case 'START_CHECKOUT':
+      return {
+        ...state,
+        checkoutId: action.payload.checkoutId
+      };
+
+    case 'PLACE_ORDER':
+      return {
+        ...state,
+        orders: [action.payload, ...state.orders],
+        cart: [],
+        cartId: '',
+        checkoutId: ''
+      };
+
+    case 'CANCEL_ORDER':
+      return {
+        ...state,
+        orders: state.orders.map(order =>
+          order.id === action.payload.orderId
+            ? { ...order, status: 'cancelled' }
+            : order
+        )
+      };
+
+    case 'REFUND_ORDER':
+      return {
+        ...state,
+        orders: state.orders.map(order =>
+          order.id === action.payload.orderId
+            ? { ...order, status: 'refunded' }
+            : order
+        )
       };
     
     case 'ADD_TOAST':
@@ -185,6 +255,10 @@ interface StoreContextType {
   markNotificationRead: (notificationId: string) => void;
   markAllNotificationsRead: () => void;
   removeNotification: (notificationId: string) => void;
+  startCheckout: () => string;
+  placeOrder: () => Order | null;
+  cancelOrder: (orderId: string, cancelReason?: string) => void;
+  refundOrder: (orderId: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -197,6 +271,86 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     void trackStoreAction(action);
     void trackAmplitudeStoreAction(action);
   }, []);
+
+  // Fire `ecommerce.cart_updated` (full cart replacement) whenever the cart
+  // contents change. We send the complete cart so the Braze cart object stays
+  // consistent. The first render and empty-cart transitions are skipped to
+  // avoid invalid payloads (the cart object is cleared by order/clear flows).
+  const cartHydrated = useRef(false);
+  useEffect(() => {
+    if (!cartHydrated.current) {
+      cartHydrated.current = true;
+      return;
+    }
+    if (state.cart.length === 0 || !state.cartId) {
+      return;
+    }
+    void logBrazeCartUpdated({ cartId: state.cartId, cart: state.cart });
+  }, [state.cart, state.cartId]);
+
+  const startCheckout = useCallback((): string => {
+    const checkoutId = generateId('chk');
+    baseDispatch({ type: 'START_CHECKOUT', payload: { checkoutId } });
+    void logBrazeCheckoutStarted({
+      checkoutId,
+      cartId: state.cartId,
+      cart: state.cart,
+    });
+    return checkoutId;
+  }, [state.cartId, state.cart]);
+
+  const placeOrder = useCallback((): Order | null => {
+    if (state.cart.length === 0) {
+      return null;
+    }
+    const order: Order = {
+      id: generateId('ord'),
+      cartId: state.cartId,
+      checkoutId: state.checkoutId,
+      items: state.cart,
+      totalValue: cartTotal(state.cart),
+      status: 'completed',
+      createdAt: new Date(),
+    };
+    // Fire before dispatch so the event captures the cart prior to clearing.
+    void logBrazeOrderPlaced({
+      orderId: order.id,
+      cartId: order.cartId,
+      cart: order.items,
+    });
+    baseDispatch({ type: 'PLACE_ORDER', payload: order });
+    return order;
+  }, [state.cart, state.cartId, state.checkoutId]);
+
+  const cancelOrder = useCallback(
+    (orderId: string, cancelReason = 'customer_request') => {
+      const order = state.orders.find((o) => o.id === orderId);
+      if (!order) {
+        return;
+      }
+      void logBrazeOrderCancelled({
+        orderId: order.id,
+        items: order.items,
+        totalValue: order.totalValue,
+        cancelReason,
+      });
+      baseDispatch({ type: 'CANCEL_ORDER', payload: { orderId } });
+    },
+    [state.orders]
+  );
+
+  const refundOrder = useCallback((orderId: string) => {
+    const order = state.orders.find((o) => o.id === orderId);
+    if (!order) {
+      return;
+    }
+    void logBrazeOrderRefunded({
+      orderId: order.id,
+      items: order.items,
+      totalValue: order.totalValue,
+    });
+    baseDispatch({ type: 'REFUND_ORDER', payload: { orderId } });
+  }, [state.orders]);
 
   const addToast = (toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -235,7 +389,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addNotification, 
       markNotificationRead, 
       markAllNotificationsRead, 
-      removeNotification 
+      removeNotification,
+      startCheckout,
+      placeOrder,
+      cancelOrder,
+      refundOrder
     }}>
       {children}
     </StoreContext.Provider>

@@ -6,7 +6,7 @@ import { User, Package, Heart, ShoppingCart, Settings, LogOut, ArrowLeft } from 
 import { useStore } from '@/context/StoreContext';
 
 export default function MyPage() {
-  const { state, dispatch } = useStore();
+  const { state, dispatch, cancelOrder, refundOrder, addToast } = useStore();
   const [activeTab, setActiveTab] = useState('profile');
 
   const handleLogout = () => {
@@ -17,8 +17,31 @@ export default function MyPage() {
     return new Intl.NumberFormat('ko-KR').format(price);
   };
 
+  const handleCancelOrder = (orderId: string) => {
+    cancelOrder(orderId);
+    addToast({ type: 'info', message: '주문이 취소되었습니다.', duration: 2500 });
+  };
+
+  const handleRefundOrder = (orderId: string) => {
+    refundOrder(orderId);
+    addToast({ type: 'info', message: '환불이 접수되었습니다.', duration: 2500 });
+  };
+
+  const orderStatusLabel: Record<string, string> = {
+    completed: '주문 완료',
+    cancelled: '주문 취소',
+    refunded: '환불 완료',
+  };
+
+  const orderStatusStyle: Record<string, string> = {
+    completed: 'bg-green-100 text-green-700',
+    cancelled: 'bg-gray-100 text-gray-600',
+    refunded: 'bg-orange-100 text-orange-700',
+  };
+
   const totalWishlistItems = state.wishlist.length;
   const totalCartItems = state.cart.reduce((total, item) => total + item.quantity, 0);
+  const completedOrders = state.orders.filter((order) => order.status === 'completed').length;
 
   if (!state.user.isLoggedIn) {
     return (
@@ -99,7 +122,7 @@ export default function MyPage() {
                   <div className="text-sm text-green-600">장바구니</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">0</div>
+                  <div className="text-2xl font-bold text-purple-600">{completedOrders}</div>
                   <div className="text-sm text-purple-600">주문 완료</div>
                 </div>
               </div>
@@ -111,16 +134,76 @@ export default function MyPage() {
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">주문 내역</h3>
-            <div className="text-center py-8 text-gray-500">
-              <Package size={48} className="mx-auto mb-4 text-gray-300" />
-              <p>아직 주문한 상품이 없습니다</p>
-              <Link
-                href="/"
-                className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                상품 둘러보기
-              </Link>
-            </div>
+            {state.orders.length > 0 ? (
+              <div className="space-y-4">
+                {state.orders.map((order) => (
+                  <div key={order.id} className="border rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-sm text-gray-500">주문번호: {order.id}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(order.createdAt).toLocaleString('ko-KR')}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${orderStatusStyle[order.status]}`}
+                      >
+                        {orderStatusLabel[order.status]}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 mb-3">
+                      {order.items.map((item) => (
+                        <div
+                          key={item.product.id}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="text-gray-700 truncate">
+                            {item.product.name} × {item.quantity}
+                          </span>
+                          <span className="text-gray-900 font-medium">
+                            {formatPrice(item.product.price * item.quantity)}원
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between border-t pt-3">
+                      <span className="font-bold text-gray-900">
+                        총 {formatPrice(order.totalValue)}원
+                      </span>
+                      {order.status === 'completed' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleCancelOrder(order.id)}
+                            className="px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                          >
+                            주문 취소
+                          </button>
+                          <button
+                            onClick={() => handleRefundOrder(order.id)}
+                            className="px-3 py-1.5 text-sm border border-orange-400 text-orange-600 rounded-md hover:bg-orange-50 transition-colors"
+                          >
+                            환불 요청
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Package size={48} className="mx-auto mb-4 text-gray-300" />
+                <p>아직 주문한 상품이 없습니다</p>
+                <Link
+                  href="/"
+                  className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  상품 둘러보기
+                </Link>
+              </div>
+            )}
           </div>
         );
 

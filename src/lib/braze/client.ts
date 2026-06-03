@@ -2,7 +2,18 @@
 
 import { getBrazeClientConfig } from './config';
 import { BRAZE_EVENTS, BrazeEventName, productEventProperties } from './events';
-import type { Product } from '@/types';
+import {
+  ECOMMERCE_EVENTS,
+  EcommerceEventName,
+  EcommerceProperties,
+  buildCartUpdatedProperties,
+  buildCheckoutStartedProperties,
+  buildOrderCancelledProperties,
+  buildOrderPlacedProperties,
+  buildOrderRefundedProperties,
+  buildProductViewedProperties,
+} from './ecommerce';
+import type { CartItem, Product } from '@/types';
 
 type BrazeModule = typeof import('@braze/web-sdk');
 
@@ -114,6 +125,93 @@ export async function logBrazeCustomEvent(
 
 export async function logBrazeProductView(product: Product): Promise<void> {
   await logBrazeCustomEvent(BRAZE_EVENTS.PRODUCT_VIEWED, productEventProperties(product));
+}
+
+/**
+ * Logs a Braze eCommerce recommended event.
+ *
+ * Unlike `logBrazeCustomEvent`, this accepts nested objects and arrays
+ * (`products[]`, `metadata`) required by the recommended event schemas.
+ */
+export async function logBrazeEcommerceEvent(
+  eventName: EcommerceEventName,
+  properties: EcommerceProperties
+): Promise<void> {
+  if (!isInitialized) {
+    return;
+  }
+
+  const braze = await loadBrazeModule();
+  if (!braze) {
+    return;
+  }
+
+  braze.logCustomEvent(
+    eventName,
+    properties as unknown as Parameters<typeof braze.logCustomEvent>[1]
+  );
+}
+
+export async function logBrazeProductViewed(product: Product): Promise<void> {
+  await logBrazeEcommerceEvent(
+    ECOMMERCE_EVENTS.PRODUCT_VIEWED,
+    buildProductViewedProperties(product)
+  );
+}
+
+export async function logBrazeCartUpdated(params: {
+  cartId: string;
+  cart: CartItem[];
+}): Promise<void> {
+  await logBrazeEcommerceEvent(
+    ECOMMERCE_EVENTS.CART_UPDATED,
+    buildCartUpdatedProperties(params)
+  );
+}
+
+export async function logBrazeCheckoutStarted(params: {
+  checkoutId: string;
+  cartId: string;
+  cart: CartItem[];
+}): Promise<void> {
+  await logBrazeEcommerceEvent(
+    ECOMMERCE_EVENTS.CHECKOUT_STARTED,
+    buildCheckoutStartedProperties(params)
+  );
+}
+
+export async function logBrazeOrderPlaced(params: {
+  orderId: string;
+  cartId: string;
+  cart: CartItem[];
+}): Promise<void> {
+  await logBrazeEcommerceEvent(
+    ECOMMERCE_EVENTS.ORDER_PLACED,
+    buildOrderPlacedProperties(params)
+  );
+}
+
+export async function logBrazeOrderCancelled(params: {
+  orderId: string;
+  items: CartItem[];
+  totalValue: number;
+  cancelReason: string;
+}): Promise<void> {
+  await logBrazeEcommerceEvent(
+    ECOMMERCE_EVENTS.ORDER_CANCELLED,
+    buildOrderCancelledProperties(params)
+  );
+}
+
+export async function logBrazeOrderRefunded(params: {
+  orderId: string;
+  items: CartItem[];
+  totalValue: number;
+}): Promise<void> {
+  await logBrazeEcommerceEvent(
+    ECOMMERCE_EVENTS.ORDER_REFUNDED,
+    buildOrderRefundedProperties(params)
+  );
 }
 
 export async function logBrazeAddToCart(product: Product): Promise<void> {

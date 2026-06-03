@@ -29,6 +29,18 @@ export interface User {
   avatar?: string;
 }
 
+export type OrderStatus = 'completed' | 'cancelled' | 'refunded';
+
+export interface Order {
+  id: string;
+  cartId: string;
+  checkoutId: string;
+  items: CartItem[];
+  totalValue: number;
+  status: OrderStatus;
+  createdAt: Date;
+}
+
 export interface Notification {
   id: string;
   title: string;

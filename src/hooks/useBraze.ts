@@ -5,6 +5,7 @@ import {
   isBrazeClientEnabled,
   logBrazeCustomEvent,
   logBrazeProductView,
+  logBrazeProductViewed,
   setBrazeUser,
 } from '@/lib/braze/client';
 import { BrazeEventName } from '@/lib/braze/events';
@@ -25,7 +26,9 @@ export function useBraze() {
   );
 
   const trackProductView = useCallback(async (product: Product) => {
+    // Legacy custom event plus the Braze eCommerce recommended event.
     await logBrazeProductView(product);
+    await logBrazeProductViewed(product);
   }, []);
 
   const identifyUser = useCallback(async (externalId: string) => {
