@@ -1,6 +1,7 @@
 'use client';
 
 import { getAmplitudeClientConfig } from './config';
+import { isLocalEnv } from '@/lib/app-env';
 import {
   AMPLITUDE_EVENTS,
   AmplitudeEventName,
@@ -73,7 +74,7 @@ export async function initializeAmplitude(): Promise<boolean> {
     isInitialized = true;
     initFailed = false;
 
-    if (process.env.NODE_ENV === 'development') {
+    if (isLocalEnv()) {
       (window as Window & { amplitude?: AmplitudeBrowser }).amplitude = amplitude;
     }
 
@@ -82,7 +83,7 @@ export async function initializeAmplitude(): Promise<boolean> {
     initFailed = true;
     isInitialized = false;
 
-    if (process.env.NODE_ENV === 'development') {
+    if (isLocalEnv()) {
       console.warn(
         '[Amplitude] 초기화 실패 — 이벤트 전송을 건너뜁니다.',
         error instanceof Error ? error.message : error

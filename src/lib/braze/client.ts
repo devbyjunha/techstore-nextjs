@@ -1,6 +1,7 @@
 'use client';
 
 import { getBrazeClientConfig } from './config';
+import { isLocalEnv } from '@/lib/app-env';
 import { BRAZE_EVENTS, BrazeEventName, productEventProperties } from './events';
 import {
   ECOMMERCE_EVENTS,
@@ -55,7 +56,7 @@ export async function initializeBraze(): Promise<boolean> {
   braze.automaticallyShowInAppMessages();
   isInitialized = true;
 
-  if (process.env.NODE_ENV === 'development') {
+  if (isLocalEnv()) {
     (window as Window & { braze?: BrazeModule }).braze = braze;
   }
 
