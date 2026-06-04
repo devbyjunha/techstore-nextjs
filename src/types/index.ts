@@ -39,6 +39,12 @@ export interface Order {
   totalValue: number;
   status: OrderStatus;
   createdAt: Date;
+  /** 비회원 주문 여부 */
+  isGuest: boolean;
+  guestName?: string;
+  guestPhone?: string;
+  /** 회원 주문 시 연결 이메일 */
+  userEmail?: string;
 }
 
 export interface Notification {

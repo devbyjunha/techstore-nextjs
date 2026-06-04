@@ -3,15 +3,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle, CreditCard, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, CheckCircle, CreditCard, Copy, ShoppingBag } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 
 export default function CheckoutPage() {
-  const router = useRouter();
   const { state, startCheckout, placeOrder, addToast } = useStore();
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
   const [isPlacing, setIsPlacing] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
   const checkoutStarted = useRef(false);
 
   const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
@@ -20,8 +20,12 @@ export default function CheckoutPage() {
     0
   );
 
-  // Fire `ecommerce.checkout_started` once when the user lands on checkout with
-  // a non-empty cart. Skipped after an order completes (cart is emptied).
+  useEffect(() => {
+    if (state.user.isLoggedIn) {
+      setGuestName(state.user.name);
+    }
+  }, [state.user.isLoggedIn, state.user.name]);
+
   useEffect(() => {
     if (checkoutStarted.current || completedOrderId) {
       return;
@@ -36,7 +40,10 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = () => {
     setIsPlacing(true);
-    const order = placeOrder();
+    const order = placeOrder({
+      guestName: state.user.isLoggedIn ? undefined : guestName,
+      guestPhone: state.user.isLoggedIn ? undefined : guestPhone,
+    });
     if (order) {
       setCompletedOrderId(order.id);
       addToast({
@@ -48,7 +55,15 @@ export default function CheckoutPage() {
     setIsPlacing(false);
   };
 
+  const handleCopyOrderNumber = async () => {
+    if (!completedOrderId) return;
+    await navigator.clipboard.writeText(completedOrderId);
+    addToast({ type: 'info', message: '주문번호가 복사되었습니다.', duration: 2000 });
+  };
+
   if (completedOrderId) {
+    const lookupHref = `/orders/lookup?orderNumber=${encodeURIComponent(completedOrderId)}`;
+
     return (
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,10 +71,29 @@ export default function CheckoutPage() {
             <CheckCircle size={72} className="mx-auto text-green-500 mb-6" />
             <h1 className="text-3xl font-bold text-gray-900 mb-3">주문이 완료되었습니다</h1>
             <p className="text-gray-600 mb-2">주문해 주셔서 감사합니다.</p>
-            <p className="text-sm text-gray-400 mb-8">주문번호: {completedOrderId}</p>
+
+            <div className="my-6 rounded-lg bg-gray-50 px-4 py-5">
+              <p className="text-sm text-gray-500 mb-1">주문번호</p>
+              <p className="text-lg font-mono font-bold text-gray-900">{completedOrderId}</p>
+              <button
+                type="button"
+                onClick={handleCopyOrderNumber}
+                className="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+              >
+                <Copy size={14} />
+                주문번호 복사
+              </button>
+            </div>
+
+            {!state.user.isLoggedIn && (
+              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-6">
+                비회원 주문입니다. 아래 주문번호로만 조회할 수 있으니 꼭 저장해 두세요.
+              </p>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
-                href="/mypage"
+                href={state.user.isLoggedIn ? '/mypage' : lookupHref}
                 className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
               >
                 주문 내역 보기
@@ -120,10 +154,14 @@ export default function CheckoutPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">주문/결제</h1>
           <p className="text-gray-600">주문 내용을 확인하고 결제를 진행하세요</p>
+          {!state.user.isLoggedIn && (
+            <p className="mt-2 text-sm text-gray-500">
+              비회원으로 주문합니다. 완료 후 발급되는 주문번호로 조회할 수 있습니다.
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* 주문 상품 목록 */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">주문 상품</h2>
@@ -153,7 +191,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* 배송지 (데모) */}
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">배송 정보</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -161,7 +198,9 @@ export default function CheckoutPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">받는 분</label>
                   <input
                     type="text"
-                    defaultValue={state.user.name || '테스트 사용자'}
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="이름"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -169,6 +208,8 @@ export default function CheckoutPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">연락처</label>
                   <input
                     type="text"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
                     placeholder="010-0000-0000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
@@ -185,7 +226,6 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* 결제 요약 */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4">결제 요약</h2>

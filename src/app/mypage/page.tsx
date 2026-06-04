@@ -2,12 +2,18 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { User, Package, Heart, ShoppingCart, Settings, LogOut, ArrowLeft } from 'lucide-react';
+import { User, Package, Heart, ShoppingCart, Settings, LogOut, ArrowLeft, Search } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
+import OrderCard from '@/components/orders/OrderCard';
+import { normalizeOrderNumberInput } from '@/lib/orders/order-number';
 
 export default function MyPage() {
-  const { state, dispatch, cancelOrder, refundOrder, addToast } = useStore();
+  const { state, dispatch, cancelOrder, refundOrder, addToast, findOrder } = useStore();
   const [activeTab, setActiveTab] = useState('profile');
+  const [guestOrderNumber, setGuestOrderNumber] = useState('');
+  const [guestLookupResult, setGuestLookupResult] = useState<
+    ReturnType<typeof findOrder> | 'not_found' | null
+  >(null);
 
   const handleLogout = () => {
     dispatch({ type: 'LOGOUT' });
@@ -27,40 +33,118 @@ export default function MyPage() {
     addToast({ type: 'info', message: '환불이 접수되었습니다.', duration: 2500 });
   };
 
-  const orderStatusLabel: Record<string, string> = {
-    completed: '주문 완료',
-    cancelled: '주문 취소',
-    refunded: '환불 완료',
+  const refreshGuestLookup = () => {
+    const normalized = normalizeOrderNumberInput(guestOrderNumber);
+    if (!normalized) return;
+    setGuestLookupResult(findOrder(normalized) ?? 'not_found');
   };
 
-  const orderStatusStyle: Record<string, string> = {
-    completed: 'bg-green-100 text-green-700',
-    cancelled: 'bg-gray-100 text-gray-600',
-    refunded: 'bg-orange-100 text-orange-700',
-  };
+  const completedOrders = state.orders.filter((order) => order.status === 'completed').length;
 
   const totalWishlistItems = state.wishlist.length;
   const totalCartItems = state.cart.reduce((total, item) => total + item.quantity, 0);
-  const completedOrders = state.orders.filter((order) => order.status === 'completed').length;
+
+  const memberOrders = state.orders.filter(
+    (order) =>
+      !order.isGuest &&
+      (order.userEmail === state.user.email || !order.userEmail)
+  );
+
+  const handleGuestOrderLookup = (e: React.FormEvent) => {
+    e.preventDefault();
+    const normalized = normalizeOrderNumberInput(guestOrderNumber);
+    if (!normalized) {
+      setGuestLookupResult(null);
+      return;
+    }
+    const order = findOrder(normalized);
+    setGuestLookupResult(order ?? 'not_found');
+  };
 
   if (!state.user.isLoggedIn) {
+    const formatPriceGuest = (price: number) =>
+      new Intl.NumberFormat('ko-KR').format(price);
+    const guestOrder =
+      guestLookupResult && guestLookupResult !== 'not_found'
+        ? guestLookupResult
+        : null;
+
     return (
       <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Link 
-            href="/" 
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Link
+            href="/"
             className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
           >
             <ArrowLeft size={20} className="mr-2" />
             홈으로 돌아가기
           </Link>
 
-          <div className="text-center py-16">
-            <User size={64} className="mx-auto text-gray-400 mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">로그인이 필요합니다</h1>
-            <p className="text-gray-600 mb-8">
-              마이페이지를 이용하려면 로그인해주세요
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">주문 조회</h1>
+            <p className="text-gray-600">
+              비회원 주문은 주문번호로 조회할 수 있습니다.
             </p>
+          </div>
+
+          <form
+            onSubmit={handleGuestOrderLookup}
+            className="bg-white rounded-lg shadow-md p-6 mb-6"
+          >
+            <label
+              htmlFor="guestOrderNumber"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              주문번호
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="guestOrderNumber"
+                type="text"
+                value={guestOrderNumber}
+                onChange={(e) => setGuestOrderNumber(e.target.value)}
+                placeholder="예: ORD-20260521143052"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+              >
+                <Search size={18} />
+                조회
+              </button>
+            </div>
+          </form>
+
+          {guestLookupResult === 'not_found' && (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500 mb-6">
+              <Package size={48} className="mx-auto mb-4 text-gray-300" />
+              <p>해당 주문번호의 내역을 찾을 수 없습니다.</p>
+            </div>
+          )}
+
+          {guestOrder && (
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <OrderCard
+                order={guestOrder}
+                formatPrice={formatPriceGuest}
+                onCancel={(id) => {
+                  cancelOrder(id);
+                  addToast({ type: 'info', message: '주문이 취소되었습니다.', duration: 2500 });
+                  refreshGuestLookup();
+                }}
+                onRefund={(id) => {
+                  refundOrder(id);
+                  addToast({ type: 'info', message: '환불이 접수되었습니다.', duration: 2500 });
+                  refreshGuestLookup();
+                }}
+              />
+            </div>
+          )}
+
+          <div className="text-center py-8 border-t border-gray-200">
+            <User size={48} className="mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-600 mb-4">회원이시면 로그인 후 전체 주문 내역을 확인하세요.</p>
             <Link
               href="/login"
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
@@ -134,62 +218,16 @@ export default function MyPage() {
         return (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">주문 내역</h3>
-            {state.orders.length > 0 ? (
+            {memberOrders.length > 0 ? (
               <div className="space-y-4">
-                {state.orders.map((order) => (
-                  <div key={order.id} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-sm text-gray-500">주문번호: {order.id}</p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(order.createdAt).toLocaleString('ko-KR')}
-                        </p>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${orderStatusStyle[order.status]}`}
-                      >
-                        {orderStatusLabel[order.status]}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 mb-3">
-                      {order.items.map((item) => (
-                        <div
-                          key={item.product.id}
-                          className="flex items-center justify-between text-sm"
-                        >
-                          <span className="text-gray-700 truncate">
-                            {item.product.name} × {item.quantity}
-                          </span>
-                          <span className="text-gray-900 font-medium">
-                            {formatPrice(item.product.price * item.quantity)}원
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between border-t pt-3">
-                      <span className="font-bold text-gray-900">
-                        총 {formatPrice(order.totalValue)}원
-                      </span>
-                      {order.status === 'completed' && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleCancelOrder(order.id)}
-                            className="px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                          >
-                            주문 취소
-                          </button>
-                          <button
-                            onClick={() => handleRefundOrder(order.id)}
-                            className="px-3 py-1.5 text-sm border border-orange-400 text-orange-600 rounded-md hover:bg-orange-50 transition-colors"
-                          >
-                            환불 요청
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                {memberOrders.map((order) => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    formatPrice={formatPrice}
+                    onCancel={handleCancelOrder}
+                    onRefund={handleRefundOrder}
+                  />
                 ))}
               </div>
             ) : (

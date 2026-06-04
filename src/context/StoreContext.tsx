@@ -21,6 +21,17 @@ import {
   logBrazeOrderPlaced,
   logBrazeOrderRefunded,
 } from '@/lib/braze/client';
+import { generateOrderNumber } from '@/lib/orders/order-number';
+import {
+  findOrderByNumber,
+  loadOrdersFromStorage,
+  saveOrdersToStorage,
+} from '@/lib/orders/storage';
+
+export interface PlaceOrderParams {
+  guestName?: string;
+  guestPhone?: string;
+}
 
 interface StoreState {
   cart: CartItem[];
@@ -58,6 +69,7 @@ type StoreAction =
   | { type: 'PLACE_ORDER'; payload: Order }
   | { type: 'CANCEL_ORDER'; payload: { orderId: string } }
   | { type: 'REFUND_ORDER'; payload: { orderId: string } }
+  | { type: 'HYDRATE_ORDERS'; payload: Order[] }
   | { type: 'ADD_TOAST'; payload: Toast }
   | { type: 'REMOVE_TOAST'; payload: string }
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
@@ -198,6 +210,12 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
             : order
         )
       };
+
+    case 'HYDRATE_ORDERS':
+      return {
+        ...state,
+        orders: action.payload,
+      };
     
     case 'ADD_TOAST':
       return {
@@ -256,7 +274,8 @@ interface StoreContextType {
   markAllNotificationsRead: () => void;
   removeNotification: (notificationId: string) => void;
   startCheckout: () => string;
-  placeOrder: () => Order | null;
+  placeOrder: (params?: PlaceOrderParams) => Order | null;
+  findOrder: (orderNumber: string) => Order | undefined;
   cancelOrder: (orderId: string, cancelReason?: string) => void;
   refundOrder: (orderId: string) => void;
 }
@@ -265,6 +284,20 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, baseDispatch] = useReducer(storeReducer, initialState);
+  const skipNextOrdersSave = useRef(true);
+
+  useEffect(() => {
+    const stored = loadOrdersFromStorage();
+    baseDispatch({ type: 'HYDRATE_ORDERS', payload: stored });
+  }, []);
+
+  useEffect(() => {
+    if (skipNextOrdersSave.current) {
+      skipNextOrdersSave.current = false;
+      return;
+    }
+    saveOrdersToStorage(state.orders);
+  }, [state.orders]);
 
   const dispatch = useCallback((action: StoreAction) => {
     if (action.type === 'CLEAR_CART' && state.cartId) {
@@ -299,18 +332,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return checkoutId;
   }, [state.cartId, state.cart]);
 
-  const placeOrder = useCallback((): Order | null => {
+  const placeOrder = useCallback((params?: PlaceOrderParams): Order | null => {
     if (state.cart.length === 0) {
       return null;
     }
+    const createdAt = new Date();
+    const existingIds = state.orders.map((o) => o.id);
+    const isGuest = !state.user.isLoggedIn;
+
     const order: Order = {
-      id: generateId('ord'),
+      id: generateOrderNumber(createdAt, existingIds),
       cartId: state.cartId,
       checkoutId: state.checkoutId,
       items: state.cart,
       totalValue: cartTotal(state.cart),
       status: 'completed',
-      createdAt: new Date(),
+      createdAt,
+      isGuest,
+      guestName: isGuest ? params?.guestName?.trim() || undefined : undefined,
+      guestPhone: isGuest ? params?.guestPhone?.trim() || undefined : undefined,
+      userEmail: state.user.isLoggedIn ? state.user.email : undefined,
     };
     // Fire before dispatch so the event captures the cart prior to clearing.
     void logBrazeOrderPlaced({
@@ -320,7 +361,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     baseDispatch({ type: 'PLACE_ORDER', payload: order });
     return order;
-  }, [state.cart, state.cartId, state.checkoutId]);
+  }, [state.cart, state.cartId, state.checkoutId, state.orders, state.user]);
+
+  const findOrder = useCallback(
+    (orderNumber: string): Order | undefined => {
+      return (
+        state.orders.find(
+          (o) => o.id.toUpperCase() === orderNumber.trim().toUpperCase().replace(/\s+/g, '')
+        ) ?? findOrderByNumber(orderNumber, state.orders)
+      );
+    },
+    [state.orders]
+  );
 
   const cancelOrder = useCallback(
     (orderId: string, cancelReason = 'customer_request') => {
@@ -392,6 +444,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeNotification,
       startCheckout,
       placeOrder,
+      findOrder,
       cancelOrder,
       refundOrder
     }}>
