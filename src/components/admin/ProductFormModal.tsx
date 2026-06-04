@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { Product } from '@/types';
 
-const CATEGORIES = ['노트북', '스마트폰', '태블릿', '액세서리'];
+const CATEGORIES = ['노트북', '스마트폰', '태블릿', '액세서리', '전기차'];
 
 type ProductFormData = {
   name: string;

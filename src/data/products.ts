@@ -251,5 +251,138 @@ export const products: Product[] = [
     category: '액세서리',
     rating: 4.8,
     reviews: 789
+  },
+  // 전기차 카테고리
+  {
+    id: '23',
+    name: 'Tesla Model 3',
+    description: 'Tesla의 베스트셀러 전기 세단. 491km 주행거리와 Autopilot을 기본 제공합니다.',
+    price: 52990000,
+    image: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.7,
+    reviews: 3421
+  },
+  {
+    id: '24',
+    name: 'Tesla Model Y',
+    description: 'Tesla의 컴팩트 SUV. 넓은 실내 공간과 511km 주행거리로 가족용 EV에 최적화.',
+    price: 58990000,
+    originalPrice: 62990000,
+    discount: 6,
+    isOnSale: true,
+    image: 'https://images.unsplash.com/photo-1617788138017-80ad10651354?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.8,
+    reviews: 2876
+  },
+  {
+    id: '25',
+    name: 'Volvo EX30',
+    description: 'Volvo의 소형 프리미엄 EV. 480km 주행거리와 스칸디나비아 디자인을 갖춘 도심형 SUV.',
+    price: 55900000,
+    image: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.6,
+    reviews: 892
+  },
+  {
+    id: '26',
+    name: 'Volvo EX90',
+    description: 'Volvo 플래그십 7인승 전기 SUV. LiDAR 기반 안전 시스템과 600km 주행거리.',
+    price: 109900000,
+    image: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.9,
+    reviews: 456
+  },
+  {
+    id: '27',
+    name: 'BYD Atto 3',
+    description: 'BYD의 컴팩트 전기 SUV. Blade Battery 기술과 420km 주행거리로 가성비를 자랑합니다.',
+    price: 44900000,
+    originalPrice: 47900000,
+    discount: 6,
+    isOnSale: true,
+    image: 'https://images.unsplash.com/photo-1593941707889-a5bba14938c7?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.5,
+    reviews: 1234
+  },
+  {
+    id: '28',
+    name: 'BYD Seal',
+    description: 'BYD의 프리미엄 전기 세단. 650km 주행거리와 CTB 배터리 일체형 기술을 적용.',
+    price: 52900000,
+    image: 'https://images.unsplash.com/photo-1619405427369-a606c0153719?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.6,
+    reviews: 678
+  },
+  {
+    id: '29',
+    name: 'Zeekr 001',
+    description: 'Geely 프리미엄 브랜드 Zeekr의 슈팅브레이크 EV. 705km 주행거리와 3.8초 0-100km/h.',
+    price: 69900000,
+    image: 'https://images.unsplash.com/photo-1617531653332-bd46c24f2068?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.7,
+    reviews: 534
+  },
+  {
+    id: '30',
+    name: 'Zeekr X',
+    description: 'Zeekr의 컴팩트 프리미엄 EV. 도심 주행에 최적화된 440km 주행거리와 빠른 충전.',
+    price: 48900000,
+    originalPrice: 51900000,
+    discount: 6,
+    isOnSale: true,
+    image: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.5,
+    reviews: 312
+  },
+  {
+    id: '31',
+    name: '현대 아이오닉 5',
+    description: '현대자동차 E-GMP 플랫폼 기반 전기 SUV. 800V 초고속 충전과 458km 주행거리.',
+    price: 52000000,
+    image: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.8,
+    reviews: 4567
+  },
+  {
+    id: '32',
+    name: '현대 아이오닉 6',
+    description: '현대의 스트림라이너 디자인 전기 세단. 524km 주행거리와 세계 최고 수준의 공기역학.',
+    price: 52800000,
+    image: 'https://images.unsplash.com/photo-1619405427369-a606c0153719?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.7,
+    reviews: 2345
+  },
+  {
+    id: '33',
+    name: '기아 EV6',
+    description: '기아의 전기 크로스오버. 800V 충전, 475km 주행거리, GT 모드 3.5초 가속.',
+    price: 51900000,
+    originalPrice: 54900000,
+    discount: 5,
+    isOnSale: true,
+    image: 'https://images.unsplash.com/photo-1593941707889-a5bba14938c7?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.8,
+    reviews: 3890
+  },
+  {
+    id: '34',
+    name: '기아 EV9',
+    description: '기아 플래그십 7인승 전기 SUV. 501km 주행거리와 2열 회전 시트, 고급 ADAS.',
+    price: 64900000,
+    image: 'https://images.unsplash.com/photo-1606664515524-ed2f786a0bd6?w=500&h=500&fit=crop&crop=center',
+    category: '전기차',
+    rating: 4.9,
+    reviews: 1567
   }
 ];

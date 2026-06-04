@@ -1,9 +1,14 @@
-import type { Order } from '@/types';
+import type { Order, OrderRefund } from '@/types';
 
 const STORAGE_KEY = 'techstore-orders';
 
-interface StoredOrder extends Omit<Order, 'createdAt'> {
+interface StoredRefund extends Omit<OrderRefund, 'createdAt'> {
   createdAt: string;
+}
+
+interface StoredOrder extends Omit<Order, 'createdAt' | 'refunds'> {
+  createdAt: string;
+  refunds?: StoredRefund[];
 }
 
 function serializeOrder(order: Order): StoredOrder {
@@ -13,6 +18,11 @@ function serializeOrder(order: Order): StoredOrder {
       order.createdAt instanceof Date
         ? order.createdAt.toISOString()
         : order.createdAt,
+    refunds: order.refunds?.map((r) => ({
+      ...r,
+      createdAt:
+        r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt,
+    })),
   };
 }
 
@@ -20,6 +30,10 @@ function deserializeOrder(stored: StoredOrder): Order {
   return {
     ...stored,
     createdAt: new Date(stored.createdAt),
+    refunds: stored.refunds?.map((r) => ({
+      ...r,
+      createdAt: new Date(r.createdAt),
+    })),
   };
 }
 

@@ -9,6 +9,7 @@ const CATEGORY_SLUG: Record<string, string> = {
   스마트폰: 'smartphone',
   태블릿: 'tablet',
   액세서리: 'accessory',
+  전기차: 'ev',
 };
 
 export default function AdminCategoriesPage() {

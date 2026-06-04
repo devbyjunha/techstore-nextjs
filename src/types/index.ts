@@ -29,7 +29,14 @@ export interface User {
   avatar?: string;
 }
 
-export type OrderStatus = 'completed' | 'cancelled' | 'refunded';
+export type OrderStatus = 'completed' | 'cancelled' | 'refunded' | 'partially_refunded';
+
+export interface OrderRefund {
+  id: string;
+  items: CartItem[];
+  totalValue: number;
+  createdAt: Date;
+}
 
 export interface Order {
   id: string;
@@ -39,6 +46,8 @@ export interface Order {
   totalValue: number;
   status: OrderStatus;
   createdAt: Date;
+  /** 누적 부분·전체 환불 내역 */
+  refunds?: OrderRefund[];
   /** 비회원 주문 여부 */
   isGuest: boolean;
   guestName?: string;

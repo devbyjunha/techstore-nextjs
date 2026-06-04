@@ -10,7 +10,7 @@ import React, {
   ReactNode,
 } from 'react';
 // NOTE: useRef is retained for the cart-hydration guard only (cartHydrated).
-import { Product, CartItem, WishlistItem, Notification, Order } from '@/types';
+import { Product, CartItem, WishlistItem, Notification, Order, OrderRefund } from '@/types';
 import { Toast } from '@/components/Toast';
 import { trackAmplitudeStoreAction } from '@/lib/amplitude/analytics';
 import { trackStoreAction } from '@/lib/braze/analytics';
@@ -27,6 +27,7 @@ import {
   loadOrdersFromStorage,
   saveOrdersToStorage,
 } from '@/lib/orders/storage';
+import { getRemainingItems, lineItemsTotal } from '@/lib/orders/refund';
 
 export interface PlaceOrderParams {
   guestName?: string;
@@ -68,7 +69,7 @@ type StoreAction =
   | { type: 'START_CHECKOUT'; payload: { checkoutId: string } }
   | { type: 'PLACE_ORDER'; payload: Order }
   | { type: 'CANCEL_ORDER'; payload: { orderId: string } }
-  | { type: 'REFUND_ORDER'; payload: { orderId: string } }
+  | { type: 'REFUND_ORDER'; payload: { orderId: string; refund: OrderRefund } }
   | { type: 'HYDRATE_ORDERS'; payload: Order[] }
   | { type: 'ADD_TOAST'; payload: Toast }
   | { type: 'REMOVE_TOAST'; payload: string }
@@ -201,15 +202,22 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
         )
       };
 
-    case 'REFUND_ORDER':
+    case 'REFUND_ORDER': {
+      const { orderId, refund } = action.payload;
       return {
         ...state,
-        orders: state.orders.map(order =>
-          order.id === action.payload.orderId
-            ? { ...order, status: 'refunded' }
-            : order
-        )
+        orders: state.orders.map((order) => {
+          if (order.id !== orderId) {
+            return order;
+          }
+          const refunds = [...(order.refunds ?? []), refund];
+          const withRefunds = { ...order, refunds };
+          const remaining = getRemainingItems(withRefunds);
+          const status = remaining.length === 0 ? 'refunded' : 'partially_refunded';
+          return { ...withRefunds, status };
+        }),
       };
+    }
 
     case 'HYDRATE_ORDERS':
       return {
@@ -277,7 +285,7 @@ interface StoreContextType {
   placeOrder: (params?: PlaceOrderParams) => Order | null;
   findOrder: (orderNumber: string) => Order | undefined;
   cancelOrder: (orderId: string, cancelReason?: string) => void;
-  refundOrder: (orderId: string) => void;
+  refundOrder: (orderId: string, refundItems: CartItem[]) => boolean;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -352,6 +360,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       guestName: isGuest ? params?.guestName?.trim() || undefined : undefined,
       guestPhone: isGuest ? params?.guestPhone?.trim() || undefined : undefined,
       userEmail: state.user.isLoggedIn ? state.user.email : undefined,
+      refunds: [],
     };
     // Fire before dispatch so the event captures the cart prior to clearing.
     void logBrazeOrderPlaced({
@@ -391,17 +400,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [state.orders]
   );
 
-  const refundOrder = useCallback((orderId: string) => {
+  const refundOrder = useCallback((orderId: string, refundItems: CartItem[]): boolean => {
     const order = state.orders.find((o) => o.id === orderId);
-    if (!order) {
-      return;
+    if (!order || refundItems.length === 0) {
+      return false;
     }
+
+    const remaining = getRemainingItems(order);
+    const valid = refundItems.every((refundLine) => {
+      const available = remaining.find((r) => r.product.id === refundLine.product.id);
+      return available && refundLine.quantity > 0 && refundLine.quantity <= available.quantity;
+    });
+    if (!valid) {
+      return false;
+    }
+
+    const refundValue = lineItemsTotal(refundItems);
+    const refund: OrderRefund = {
+      id: generateId('rfnd'),
+      items: refundItems,
+      totalValue: refundValue,
+      createdAt: new Date(),
+    };
+
     void logBrazeOrderRefunded({
       orderId: order.id,
-      items: order.items,
-      totalValue: order.totalValue,
+      items: refundItems,
+      totalValue: refundValue,
     });
-    baseDispatch({ type: 'REFUND_ORDER', payload: { orderId } });
+    baseDispatch({ type: 'REFUND_ORDER', payload: { orderId, refund } });
+    return true;
   }, [state.orders]);
 
   const addToast = (toast: Omit<Toast, 'id'>) => {

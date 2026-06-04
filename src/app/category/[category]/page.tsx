@@ -21,6 +21,7 @@ export default function CategoryPage() {
     'smartphone': '스마트폰',
     'tablet': '태블릿',
     'accessory': '액세서리',
+    'ev': '전기차',
     'earphone': '이어폰',
     'smartwatch': '스마트워치',
     'desktop': '데스크톱',

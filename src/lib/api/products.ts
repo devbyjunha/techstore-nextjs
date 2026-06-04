@@ -6,6 +6,7 @@ export const CATEGORY_SLUGS: Record<string, string> = {
   smartphone: '스마트폰',
   tablet: '태블릿',
   accessory: '액세서리',
+  ev: '전기차',
 };
 
 export function serializeProduct(product: Product) {

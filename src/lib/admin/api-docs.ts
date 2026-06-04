@@ -74,7 +74,7 @@ export const API_DOC_SECTIONS: ApiDocSection[] = [
           null,
           2
         ),
-        notes: ['category slug: laptop, smartphone, tablet, accessory'],
+        notes: ['category slug: laptop, smartphone, tablet, accessory, ev'],
       },
       {
         id: 'products-one',

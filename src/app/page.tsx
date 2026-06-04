@@ -161,12 +161,13 @@ export default function Home() {
             <p className="mt-2 text-slate-600">원하는 카테고리에서 바로 쇼핑하세요</p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {[
               { name: '노트북', slug: 'laptop', gradient: 'from-blue-500 to-indigo-600' },
               { name: '스마트폰', slug: 'smartphone', gradient: 'from-violet-500 to-purple-600' },
               { name: '태블릿', slug: 'tablet', gradient: 'from-cyan-500 to-blue-600' },
               { name: '액세서리', slug: 'accessory', gradient: 'from-amber-500 to-orange-600' },
+              { name: '전기차', slug: 'ev', gradient: 'from-emerald-500 to-teal-600' },
             ].map(({ name, slug, gradient }) => {
               const categoryProducts = products.filter((p) => p.category === name);
               return (

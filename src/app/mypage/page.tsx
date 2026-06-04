@@ -28,9 +28,19 @@ export default function MyPage() {
     addToast({ type: 'info', message: '주문이 취소되었습니다.', duration: 2500 });
   };
 
-  const handleRefundOrder = (orderId: string) => {
-    refundOrder(orderId);
-    addToast({ type: 'info', message: '환불이 접수되었습니다.', duration: 2500 });
+  const handleRefundOrder = (orderId: string, items: import('@/types').CartItem[]) => {
+    const ok = refundOrder(orderId, items);
+    if (ok) {
+      addToast({
+        type: 'info',
+        message:
+          items.length === 1 && items[0].quantity > 0
+            ? '환불이 접수되었습니다.'
+            : '선택한 상품 환불이 접수되었습니다.',
+        duration: 2500,
+      });
+    }
+    return ok;
   };
 
   const refreshGuestLookup = () => {
@@ -133,10 +143,10 @@ export default function MyPage() {
                   addToast({ type: 'info', message: '주문이 취소되었습니다.', duration: 2500 });
                   refreshGuestLookup();
                 }}
-                onRefund={(id) => {
-                  refundOrder(id);
-                  addToast({ type: 'info', message: '환불이 접수되었습니다.', duration: 2500 });
-                  refreshGuestLookup();
+                onRefund={(orderId, items) => {
+                  if (handleRefundOrder(orderId, items)) {
+                    refreshGuestLookup();
+                  }
                 }}
               />
             </div>

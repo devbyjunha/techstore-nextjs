@@ -166,8 +166,8 @@ export function buildOrderCancelledProperties(params: {
 }
 
 /**
- * `ecommerce.order_refunded` — decrements Total Revenue, increments Total Refunds.
- * `total_value` must be the refunded amount (the full order total for a full refund).
+ * `ecommerce.order_refunded` — 전체·부분 환불 모두 지원.
+ * `total_value`와 `products`는 **이번 환불분**만 포함 (Braze 권장 스키마).
  */
 export function buildOrderRefundedProperties(params: {
   orderId: string;

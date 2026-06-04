@@ -103,7 +103,7 @@ function SearchPageContent() {
             <div className="space-y-2">
               <p className="text-sm text-gray-500">추천 검색어:</p>
               <div className="flex flex-wrap justify-center gap-2">
-                {['노트북', '스마트폰', '태블릿', '이어폰', '스마트워치'].map((keyword) => (
+                {['노트북', '스마트폰', '태블릿', '전기차', '이어폰', '스마트워치'].map((keyword) => (
                   <button
                     key={keyword}
                     onClick={() => setSearchQuery(keyword)}

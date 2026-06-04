@@ -43,10 +43,13 @@ function OrderLookupContent() {
     handleSearch();
   };
 
-  const handleRefundOrder = (orderId: string) => {
-    refundOrder(orderId);
-    addToast({ type: 'info', message: '환불이 접수되었습니다.', duration: 2500 });
-    handleSearch();
+  const handleRefundOrder = (orderId: string, items: import('@/types').CartItem[]) => {
+    const ok = refundOrder(orderId, items);
+    if (ok) {
+      addToast({ type: 'info', message: '환불이 접수되었습니다.', duration: 2500 });
+      handleSearch();
+    }
+    return ok;
   };
 
   React.useEffect(() => {

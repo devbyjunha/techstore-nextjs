@@ -17,6 +17,7 @@ import {
   Smartphone,
   Tablet,
   Headphones,
+  Car,
   Shield,
 } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
@@ -28,6 +29,7 @@ const CATEGORIES = [
   { name: '스마트폰', slug: 'smartphone', icon: Smartphone },
   { name: '태블릿', slug: 'tablet', icon: Tablet },
   { name: '액세서리', slug: 'accessory', icon: Headphones },
+  { name: '전기차', slug: 'ev', icon: Car },
 ] as const;
 
 export default function GNB() {
