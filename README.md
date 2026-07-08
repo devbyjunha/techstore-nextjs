@@ -8,6 +8,7 @@ Amplitude·Braze 연동이 포함된 Next.js 테크 쇼핑몰 데모입니다.
 |------|------|
 | **이 README** | 빠른 실행, npm·Git 명령어 |
 | **[docs/PROJECT.md](./docs/PROJECT.md)** | 프로젝트 구조, 프론트/백엔드 구분, 환경 변수·Analytics 상세, Next.js/Jest 설명 |
+| **[docs/BRAZE-BANNERS.md](./docs/BRAZE-BANNERS.md)** | Braze Banners Web 연동 가이드 (PDP 추가혜택 PoC, Dashboard·실무 코드) |
 | **[docs/ADMIN-PROXY.md](./docs/ADMIN-PROXY.md)** | `/api/admin/proxy` 동작 원리 (CORS, 릴레이 역할, 다른 API와 차이) |
 | **[.env.example](./.env.example)** | 환경 변수 키 목록 (값은 로컬 `.env.local`에만 입력) |
 

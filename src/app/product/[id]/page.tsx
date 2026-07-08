@@ -9,6 +9,7 @@ import { useStore } from '@/context/StoreContext';
 import { useProducts } from '@/context/ProductsContext';
 import { useAmplitude } from '@/hooks/useAmplitude';
 import { useBraze } from '@/hooks/useBraze';
+import ProductAdditionalBenefits from '@/components/product/ProductAdditionalBenefits';
 
 export default function ProductDetail() {
   const params = useParams();
@@ -177,6 +178,8 @@ export default function ProductDetail() {
                   <li>• 30일 환불 보장</li>
                 </ul>
               </div>
+
+              <ProductAdditionalBenefits />
             </div>
           </div>
         </div>

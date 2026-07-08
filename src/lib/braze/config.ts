@@ -3,6 +3,8 @@ export interface BrazeClientConfig {
   sdkEndpoint: string;
   enableLogging: boolean;
   enabled: boolean;
+  /** PDP 추가혜택 영역 Placement ID — Braze Dashboard에서 동일 ID로 생성 */
+  pdpBenefitsPlacementId: string;
 }
 
 export interface BrazeServerConfig {
@@ -28,11 +30,16 @@ export function getBrazeClientConfig(): BrazeClientConfig {
     );
   }
 
+  const pdpBenefitsPlacementId =
+    process.env.NEXT_PUBLIC_BRAZE_BANNER_PDP_BENEFITS_PLACEMENT ??
+    'pdp_additional_benefit';
+
   return {
     apiKey,
     sdkEndpoint,
     enableLogging,
     enabled: Boolean(apiKey && sdkEndpoint),
+    pdpBenefitsPlacementId,
   };
 }
 

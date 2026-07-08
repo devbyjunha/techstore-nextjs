@@ -63,7 +63,7 @@ type StoreAction =
   | { type: 'UPDATE_CART_QUANTITY'; payload: { productId: string; quantity: number } }
   | { type: 'ADD_TO_WISHLIST'; payload: Product }
   | { type: 'REMOVE_FROM_WISHLIST'; payload: string }
-  | { type: 'LOGIN'; payload: { name: string; email: string } }
+  | { type: 'LOGIN'; payload: { name: string; email: string; membershipTier?: string } }
   | { type: 'LOGOUT' }
   | { type: 'CLEAR_CART' }
   | { type: 'START_CHECKOUT'; payload: { checkoutId: string } }

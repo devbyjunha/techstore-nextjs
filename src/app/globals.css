@@ -75,3 +75,24 @@ body::before {
     0 20px 40px -12px rgba(15, 23, 42, 0.12),
     0 0 0 1px rgba(99, 102, 241, 0.08);
 }
+
+/* Braze Banner — 고정 44px 슬롯 (iframe height:100% 대응) */
+.braze-banner-row {
+  display: block;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  overflow: hidden;
+}
+
+.braze-banner-row iframe.ab-html-banner,
+.braze-banner-row iframe {
+  display: block;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  border: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}

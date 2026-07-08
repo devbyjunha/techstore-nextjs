@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect } from 'react';
 import {
+  getBrazeModule,
   initializeBraze,
   isBrazeClientEnabled,
   openBrazeSession,
@@ -24,6 +25,14 @@ export default function BrazeProvider({ children }: BrazeProviderProps) {
       if (cancelled || !initialized) {
         return;
       }
+
+      const braze = await getBrazeModule();
+      if (!braze || cancelled) {
+        return;
+      }
+
+      // Banner 구독은 openSession 이전에 등록해야 합니다.
+      braze.subscribeToBannersUpdates(() => {});
 
       await openBrazeSession();
     }

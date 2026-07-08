@@ -20,6 +20,15 @@ type BrazeModule = typeof import('@braze/web-sdk');
 
 let brazeModule: BrazeModule | null = null;
 let isInitialized = false;
+let initPromise: Promise<boolean> | null = null;
+
+export function isBrazeInitialized(): boolean {
+  return isInitialized;
+}
+
+export async function getBrazeModule(): Promise<BrazeModule | null> {
+  return loadBrazeModule();
+}
 
 async function loadBrazeModule(): Promise<BrazeModule | null> {
   if (typeof window === 'undefined') {
@@ -38,29 +47,38 @@ export function isBrazeClientEnabled(): boolean {
 }
 
 export async function initializeBraze(): Promise<boolean> {
-  const config = getBrazeClientConfig();
-  if (!config.enabled || isInitialized) {
-    return isInitialized;
+  if (initPromise) {
+    return initPromise;
   }
 
-  const braze = await loadBrazeModule();
-  if (!braze) {
-    return false;
-  }
+  initPromise = (async () => {
+    const config = getBrazeClientConfig();
+    if (!config.enabled || isInitialized) {
+      return isInitialized;
+    }
 
-  braze.initialize(config.apiKey, {
-    baseUrl: config.sdkEndpoint,
-    enableLogging: config.enableLogging,
-  });
+    const braze = await loadBrazeModule();
+    if (!braze) {
+      return false;
+    }
 
-  braze.automaticallyShowInAppMessages();
-  isInitialized = true;
+    braze.initialize(config.apiKey, {
+      baseUrl: config.sdkEndpoint,
+      enableLogging: config.enableLogging,
+      allowUserSuppliedJavascript: true,
+    });
 
-  if (isLocalEnv()) {
-    (window as Window & { braze?: BrazeModule }).braze = braze;
-  }
+    braze.automaticallyShowInAppMessages();
+    isInitialized = true;
 
-  return true;
+    if (isLocalEnv()) {
+      (window as Window & { braze?: BrazeModule }).braze = braze;
+    }
+
+    return true;
+  })();
+
+  return initPromise;
 }
 
 export async function openBrazeSession(externalUserId?: string): Promise<void> {
@@ -80,7 +98,10 @@ export async function openBrazeSession(externalUserId?: string): Promise<void> {
   braze.openSession();
 }
 
-export async function setBrazeUser(externalUserId: string): Promise<void> {
+export async function setBrazeUser(
+  externalUserId: string,
+  membershipTier?: string
+): Promise<void> {
   if (!isInitialized) {
     return;
   }
@@ -91,7 +112,14 @@ export async function setBrazeUser(externalUserId: string): Promise<void> {
   }
 
   braze.changeUser(externalUserId);
+
+  if (membershipTier) {
+    braze.getUser()?.setCustomUserAttribute('membership_tier', membershipTier);
+  }
+
   braze.requestImmediateDataFlush();
+
+  braze.requestBannersRefresh([getBrazeClientConfig().pdpBenefitsPlacementId]);
 }
 
 export async function clearBrazeUser(): Promise<void> {
@@ -211,11 +239,16 @@ export async function logBrazeOrderRefunded(params: {
   );
 }
 
-export async function logBrazeLogin(email: string, name: string): Promise<void> {
-  await setBrazeUser(email);
+export async function logBrazeLogin(
+  email: string,
+  name: string,
+  membershipTier?: string
+): Promise<void> {
+  await setBrazeUser(email, membershipTier);
   await logBrazeCustomEvent(BRAZE_EVENTS.USER_LOGIN, {
     email,
     name,
+    ...(membershipTier ? { membership_tier: membershipTier } : {}),
   });
 }
 

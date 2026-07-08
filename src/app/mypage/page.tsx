@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { User, Package, Heart, ShoppingCart, Settings, LogOut, ArrowLeft, Search } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 import OrderCard from '@/components/orders/OrderCard';
+import BrazePushSettings from '@/components/BrazePushSettings';
 import { normalizeOrderNumberInput } from '@/lib/orders/order-number';
 
 export default function MyPage() {
@@ -338,14 +339,20 @@ export default function MyPage() {
           <div className="bg-white rounded-lg shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">계정 설정</h3>
             <div className="space-y-4">
+              <BrazePushSettings
+                onToast={(message, type) =>
+                  addToast({
+                    type: type === 'error' ? 'error' : 'info',
+                    message,
+                    duration: 3000,
+                  })
+                }
+              />
               <button className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 비밀번호 변경
               </button>
               <button className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 개인정보 수정
-              </button>
-              <button className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                알림 설정
               </button>
               <button className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 배송지 관리

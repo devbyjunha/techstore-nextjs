@@ -10,9 +10,12 @@ import { syncUserViaAmplitudeApi } from '@/lib/amplitude/analytics';
 import { BRAZE_EVENTS } from '@/lib/braze/events';
 import { syncUserViaBrazeApi } from '@/lib/braze/analytics';
 
+type MembershipTier = 'gold' | 'silver';
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [membershipTier, setMembershipTier] = useState<MembershipTier>('gold');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { dispatch } = useStore();
@@ -31,7 +34,10 @@ export default function LoginPage() {
 
         dispatch({
           type: 'LOGIN',
-          payload: user,
+          payload: {
+            ...user,
+            membershipTier: membershipTier.toUpperCase(),
+          },
         });
 
         await Promise.all([
@@ -39,6 +45,7 @@ export default function LoginPage() {
             externalId: email,
             email,
             name: user.name,
+            membershipTier: membershipTier.toUpperCase(),
             eventName: BRAZE_EVENTS.USER_LOGIN,
           }),
           syncUserViaAmplitudeApi({
@@ -123,6 +130,21 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
+
+            <div>
+              <label htmlFor="membership-tier" className="block text-sm font-medium text-gray-700">
+                멤버십 등급 (PoC)
+              </label>
+              <select
+                id="membership-tier"
+                value={membershipTier}
+                onChange={(e) => setMembershipTier(e.target.value as MembershipTier)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+              >
+                <option value="gold">GOLD — 5% 추가 적립 배너</option>
+                <option value="silver">SILVER — 3% 추가 적립 배너</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex items-center justify-between">
@@ -170,6 +192,8 @@ export default function LoginPage() {
           <h3 className="text-sm font-medium text-blue-900 mb-2">데모 계정</h3>
           <p className="text-xs text-blue-700">
             이메일과 비밀번호를 아무 값이나 입력하면 로그인됩니다.
+            <br />
+            멤버십 등급에 따라 Braze Banner A/B가 달라집니다.
             <br />
             (실제 서비스에서는 API 연동이 필요합니다)
           </p>

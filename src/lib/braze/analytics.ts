@@ -6,7 +6,7 @@ import {
 } from './client';
 
 type BrazeStoreAction =
-  | { type: 'LOGIN'; payload: { name: string; email: string } }
+  | { type: 'LOGIN'; payload: { name: string; email: string; membershipTier?: string } }
   | { type: 'LOGOUT' };
 
 /** Braze Web SDK — auth events only. Commerce uses eCommerce recommended events in StoreContext. */
@@ -15,8 +15,10 @@ export async function trackStoreAction(
 ): Promise<void> {
   switch (action.type) {
     case 'LOGIN': {
-      const { email, name } = (action as BrazeStoreAction & { type: 'LOGIN' }).payload;
-      await logBrazeLogin(email, name);
+      const { email, name, membershipTier } = (
+        action as BrazeStoreAction & { type: 'LOGIN' }
+      ).payload;
+      await logBrazeLogin(email, name, membershipTier);
       break;
     }
     case 'LOGOUT':
@@ -32,6 +34,7 @@ export async function syncUserViaBrazeApi(params: {
   email: string;
   name: string;
   eventName?: string;
+  membershipTier?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetch('/api/users/track', {
@@ -43,6 +46,9 @@ export async function syncUserViaBrazeApi(params: {
             external_id: params.externalId,
             email: params.email,
             first_name: params.name,
+            ...(params.membershipTier
+              ? { membership_tier: params.membershipTier }
+              : {}),
           },
         ],
         events: params.eventName
