@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>TechStore × Talon.One PoC 정리</title>
+</head>
+<body>
+
+<h1>TechStore × Talon.One PoC 정리</h1>
+
+<p><strong>프로젝트:</strong> TechStore (Next.js 데모 쇼핑몰)<br />
+<strong>목적:</strong> Braze(발급·CRM)와 역할을 분리한 Talon.One 프로모션·쿠폰·세션 PoC<br />
+<strong>환경:</strong> Talon.One Live Application TechStore (KRW)<br />
+<strong>작성:</strong> 2026-08-06</p>
+
+<h2>1. PoC 한 줄 요약</h2>
+<p>장바구니/체크아웃에서 Talon.One Integration API로 세션을 평가하고, Dashboard 캠페인(C1~C3)에 따라 할인·쿠폰·멤버십 보너스를 실시간 반영한다. 주문 완료/취소 시 세션을 closed / cancelled로 마감한다.</p>
+
+<h2>2. 역할 분리 (Braze vs Talon.One)</h2>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>레이어</th><th>담당</th><th>PoC에서 한 일</th></tr>
+  <tr><td>Braze</td><td>쿠폰 발급, 메시징, 배너, external_id</td><td>기존 유지. 로그인 시 changeUser(email)</td></tr>
+  <tr><td>Talon.One</td><td>할인 규칙, 쿠폰 검증/적용, 로열티</td><td>C1~C3 캠페인 + 세션 API</td></tr>
+  <tr><td>TechStore</td><td>UI, BFF API, 주문</td><td>/api/v1/talon/session, 카트/체크아웃 UI</td></tr>
+</table>
+<p><strong>핵심:</strong> 카탈로그 SALE 뱃지 ≠ Talon 할인. PoC에서는 목록은 정가만, 할인은 장바구니에서 Talon이 평가.</p>
+
+<h2>3. Talon.One Dashboard 구성</h2>
+
+<h3>3.1 Application</h3>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>항목</th><th>값</th></tr>
+  <tr><td>Application</td><td>TechStore (Live)</td></tr>
+  <tr><td>Currency</td><td>KRW</td></tr>
+  <tr><td>Application ID</td><td>4</td></tr>
+  <tr><td>Base URL</td><td>https://maxonomy.europe-west1.talon.one</td></tr>
+  <tr><td>API Key</td><td>Standard integration (No) — 서버 직접 호출</td></tr>
+</table>
+
+<h3>3.2 Custom Attribute</h3>
+<p><strong>경로:</strong> Tools → Attributes (앱 Settings의 Custom Attributes 아님)</p>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>Entity</th><th>API name</th><th>Type</th><th>Picklist</th></tr>
+  <tr><td>Customer Profile</td><td>MembershipTier</td><td>String</td><td>GOLD, SILVER</td></tr>
+</table>
+
+<h3>3.3 Loyalty Program</h3>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>항목</th><th>값</th></tr>
+  <tr><td>Name</td><td>TechStore Points</td></tr>
+  <tr><td>Type</td><td>Profile-based</td></tr>
+  <tr><td>Program ID</td><td>5</td></tr>
+  <tr><td>Subledgers</td><td>Off</td></tr>
+</table>
+
+<h3>3.4 Campaigns (Running)</h3>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>ID</th><th>Campaign</th><th>Condition</th><th>Effect</th></tr>
+  <tr><td>C1</td><td>Cart Threshold 10%</td><td>Cart Items Total &gt; 50,000</td><td>10% discount</td></tr>
+  <tr><td>C2</td><td>Coupon WELCOME10</td><td>Coupon code is valid</td><td>10% discount</td></tr>
+  <tr><td>C3</td><td>GOLD Member Bonus</td><td>MembershipTier == GOLD</td><td>5% discount</td></tr>
+</table>
+<p>C2 쿠폰: Universal code WELCOME10</p>
+
+<h2>4. TechStore 구현</h2>
+
+<h3>4.1 환경 변수 (.env.local)</h3>
+<pre>TALON_ONE_BASE_URL=https://maxonomy.europe-west1.talon.one
+TALON_ONE_API_KEY=&lt;Integration API Key&gt;
+TALON_ONE_APPLICATION_ID=4
+TALON_ONE_LOYALTY_PROGRAM_ID=5</pre>
+
+<h3>4.2 API</h3>
+<p>POST /api/v1/talon/session → Talon PUT /v2/customer_sessions/{sessionId}</p>
+<p>인증: Authorization: ApiKey-v1 {key}</p>
+<p>couponCodes는 항상 전송 (제거 시 빈 배열 []).</p>
+
+<h3>4.3 profileId</h3>
+<ol>
+  <li>Braze getUserId() / changeUser 값</li>
+  <li>로그인 email</li>
+  <li>guest_{cartId}</li>
+</ol>
+
+<h3>4.4 TechStore에서 Talon.One API 호출 영역</h3>
+<p><strong>브라우저 → Talon 직접 호출 없음.</strong> 프론트는 BFF만 호출하고, 서버 <code>src/lib/talon/client.ts</code>만 Integration API를 친다.</p>
+<pre>
+[장바구니 / 체크아웃 UI]          [주문 완료 / 취소]
+  cart/page.tsx                    StoreContext
+  checkout/page.tsx                  │
+        │                            │
+        ▼                            ▼
+  requestTalonSession()      finalizeTalonSession()
+        └──────────┬─────────────────┘
+                   ▼
+         src/lib/talon/browser.ts  →  POST /api/v1/talon/session
+                   ▼
+         src/lib/talon/client.ts  ← ★ Talon 실호출 유일 지점
+       ┌───────────┴───────────┐
+       ▼                       ▼
+ PUT /v2/customer_profiles/{id}   PUT /v2/customer_sessions/{id}
+</pre>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>영역</th><th>파일</th><th>시점</th><th>state</th></tr>
+  <tr><td>장바구니</td><td>src/app/cart/page.tsx</td><td>카트·유저·쿠폰 변경</td><td>open</td></tr>
+  <tr><td>체크아웃</td><td>src/app/checkout/page.tsx</td><td>진입·재평가</td><td>open</td></tr>
+  <tr><td>주문 완료</td><td>src/context/StoreContext.tsx</td><td>placeOrder</td><td>closed</td></tr>
+  <tr><td>주문 취소</td><td>src/context/StoreContext.tsx</td><td>cancelOrder</td><td>cancelled</td></tr>
+</table>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>레이어</th><th>경로</th><th>Talon 직접?</th></tr>
+  <tr><td>Browser</td><td>src/lib/talon/browser.ts</td><td>아니오 (BFF만)</td></tr>
+  <tr><td>BFF</td><td>src/app/api/v1/talon/session/route.ts</td><td>아니오 (client 위임)</td></tr>
+  <tr><td>Talon client</td><td>src/lib/talon/client.ts</td><td>예 (유일)</td></tr>
+  <tr><td>UI 표시</td><td>TalonDiscountAccordion.tsx</td><td>아니오</td></tr>
+</table>
+<p>PoC에서 Management API는 호출하지 않음.</p>
+
+<h3>4.5 세션 라이프사이클</h3>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>state</th><th>Dashboard Event</th><th>시점</th></tr>
+  <tr><td>open</td><td>talon_session_updated</td><td>카트/쿠폰 변경</td></tr>
+  <tr><td>closed</td><td>talon_session_closed</td><td>주문 완료</td></tr>
+  <tr><td>cancelled</td><td>talon_session_revoked</td><td>주문 취소</td></tr>
+</table>
+
+<h2>5. 테스트 시나리오</h2>
+
+<h3>C1 — 5만원 이상 10% (비로그인 OK)</h3>
+<ul>
+  <li>5만원 미만 → 할인 0원</li>
+  <li>5만원 초과 → 10% 할인</li>
+</ul>
+
+<h3>C2 — WELCOME10 (비로그인 OK)</h3>
+<ul>
+  <li>5만원 이상 + WELCOME10 적용</li>
+  <li>제거 시 C1만 유지</li>
+</ul>
+
+<h3>C3 — GOLD 5% (로그인 필요)</h3>
+<ul>
+  <li>/login → GOLD</li>
+  <li>SILVER는 C3 없음</li>
+</ul>
+
+<h3>풀 데모 (15분)</h3>
+<ol>
+  <li>GOLD 로그인</li>
+  <li>5만원 이상 담기 → C1 + C3</li>
+  <li>WELCOME10 → C1 + C2 + C3</li>
+  <li>주문 → talon_session_closed</li>
+  <li>(선택) 취소 → talon_session_revoked</li>
+</ol>
+
+<h2>6. 완료 / Later</h2>
+<p><strong>완료:</strong> C1~C3, session API, 카트 UI(아코디언), 쿠폰 적용/제거, Braze profileId, close/cancel</p>
+<p><strong>Later:</strong> Loyalty earn/burn, Braze↔Talon 쿠폰 통합, bundle 캠페인</p>
+
+<h2>7. 이슈 & 해결</h2>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>이슈</th><th>해결</th></tr>
+  <tr><td>쿠폰 API 중복 호출</td><td>단일 evaluation 경로</td></tr>
+  <tr><td>쿠폰 제거 후 할인 유지</td><td>couponCodes: [] 항상 전송</td></tr>
+  <tr><td>Attributes 메뉴</td><td>Tools → Attributes</td></tr>
+</table>
+
+<h2>8. Integration API vs Management API</h2>
+<p><strong>PoC는 Integration API만 사용.</strong> 라이선스 고객의 초기 Import·백오피스는 주로 Management API(또는 Campaign Manager UI).</p>
+
+<h3>8.1 역할 도식</h3>
+<pre>
+┌─────────────────┐     Integration API      ┌──────────────────────┐
+│  쇼핑몰 / BFF    │ ───────────────────────► │  Talon.One Engine     │
+│  (TechStore)     │  실시간 세션·프로필·효과   │  (할인 평가)          │
+└─────────────────┘  ApiKey-v1               └──────────────────────┘
+                                                      ▲
+┌─────────────────┐     Management API               │
+│  백오피스 / 배치  │ ───────────────────────► │  Campaign Manager    │
+│  CRM / 마이그    │  쿠폰·로열티 Import, 캠페인 │  (설정·Import)       │
+└─────────────────┘  ManagementKey-v1        └──────────────────────┘
+</pre>
+
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th></th><th>Integration API</th><th>Management API</th></tr>
+  <tr><td>한 줄</td><td>고객·카트 실시간 연동</td><td>Campaign Manager를 코드로</td></tr>
+  <tr><td>주요 용도</td><td>세션 평가, 쿠폰 적용, 주문 close</td><td>쿠폰/로열티 Import, 캠페인·속성 관리</td></tr>
+  <tr><td>호출 주체</td><td>쇼핑몰 BFF, 체크아웃</td><td>배치 잡, 어드민, 마이그레이션</td></tr>
+  <tr><td>인증</td><td>ApiKey-v1</td><td>ManagementKey-v1</td></tr>
+  <tr><td>부하·SLA</td><td>실시간·고부하 (계약 SLA 대상)</td><td>백오피스 (~3 req/s)</td></tr>
+  <tr><td>PoC에서</td><td>사용 (/api/v1/talon/session)</td><td>미사용</td></tr>
+</table>
+
+<h3>8.2 작업별 API 선택</h3>
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>작업</th><th>API</th></tr>
+  <tr><td>장바구니 할인 평가 / 주문 close·cancel</td><td>Integration</td></tr>
+  <tr><td>고객 프로필 속성 / 과거 주문 적재</td><td>Integration</td></tr>
+  <tr><td>쿠폰 CSV Import / 로열티 포인트·카드 Import</td><td>Management</td></tr>
+  <tr><td>쿠폰 대량 생성 (발급 연동)</td><td>Management</td></tr>
+  <tr><td>캠페인 규칙 설계</td><td>Dashboard (또는 Management) — 레거시 1:1 자동 이관 없음</td></tr>
+</table>
+<p><strong>주의:</strong> Management API를 카트/체크아웃 경로에 쓰지 말 것. 실시간 평가는 항상 Integration API.</p>
+
+<h2>9. 실제 도입 시 초기 Import / 마이그레이션</h2>
+<p>PoC(C1~C3)는 그린필드라 Import가 없어도 된다. 기존 Incentive·쿠폰·로열티를 이어 쓰는 Go-live라면 아래가 검토 대상이다.</p>
+
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th></th><th>PoC (현재)</th><th>라이선스 고객 초기 세팅</th></tr>
+  <tr><td>캠페인</td><td>C1~C3 수동 생성</td><td>비즈니스 규칙으로 재설계·생성</td></tr>
+  <tr><td>기존 쿠폰</td><td>WELCOME10만</td><td>레거시 코드 bulk import</td></tr>
+  <tr><td>로열티 잔액</td><td>프로그램만 생성</td><td>포인트/카드 잔액 import</td></tr>
+  <tr><td>고객·구매 이력</td><td>세션 평가만</td><td>프로필·과거 session 적재</td></tr>
+</table>
+
+<table border="1" cellpadding="8" cellspacing="0">
+  <tr><th>데이터</th><th>API</th><th>방식</th></tr>
+  <tr><td>쿠폰 코드</td><td>Management import_coupons</td><td>CSV</td></tr>
+  <tr><td>로열티 포인트/카드</td><td>Management import_points / import_cards</td><td>CSV</td></tr>
+  <tr><td>Customer Profile</td><td>Integration customer_profiles</td><td>배치 PUT</td></tr>
+  <tr><td>과거 주문</td><td>Integration customer_sessions (closed)</td><td>배치 PUT</td></tr>
+</table>
+
+<p><strong>이관 가능:</strong> 쿠폰 코드·로열티 잔액·프로필·과거 주문<br />
+<strong>재설계 필요:</strong> 프로모션 규칙 엔진 로직 (1:1 자동 이관 없음)</p>
+
+<p><strong>한 줄:</strong> 실시간 할인 = Integration API (PoC). 초기 Import = Management API + (프로필/이력은) Integration 배치. 레거시 규칙은 Talon Campaign으로 재설계.</p>
+
+<p><em>TechStore Next.js PoC — Talon.One Integration</em></p>
+
+</body>
+</html>

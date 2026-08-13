@@ -23,14 +23,14 @@ export default function Home() {
   const { addNotification } = useStore();
 
   const featuredProducts = products.slice(0, FEATURED_COUNT);
-  const saleCount = products.filter((p) => p.isOnSale).length;
+  const underThresholdCount = products.filter((p) => p.price < 50_000).length;
 
   const handleBrowseProducts = () => {
     router.push('/products');
   };
 
-  const handleViewSaleProducts = () => {
-    router.push('/products?sale=true');
+  const handleViewUnderThresholdProducts = () => {
+    router.push('/products?under=50000');
   };
 
   const handleTestNotification = () => {
@@ -78,10 +78,10 @@ export default function Home() {
               </button>
               <button
                 type="button"
-                onClick={handleViewSaleProducts}
+                onClick={handleViewUnderThresholdProducts}
                 className="inline-flex items-center gap-2 rounded-2xl border border-white/20 bg-white/5 px-8 py-3.5 text-base font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10"
               >
-                특가 {saleCount}개 보기
+                5만원 미만 테스트 {underThresholdCount}개
               </button>
             </div>
           </div>
@@ -106,7 +106,7 @@ export default function Home() {
           <div className="text-center sm:text-left">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">인기 상품</h2>
             <p className="mt-2 text-slate-600">
-              베스트셀러 미리보기 · 전체 {products.length}개 상품
+              목록 가격은 정가입니다 · 프로모션 할인은 장바구니에서 Talon이 적용합니다
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -118,10 +118,10 @@ export default function Home() {
               <ArrowRight size={16} />
             </Link>
             <Link
-              href="/products?sale=true"
-              className="rounded-xl bg-rose-50 px-5 py-2.5 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-100"
+              href="/products?under=50000"
+              className="rounded-xl bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100"
             >
-              특가만 보기
+              5만원 미만 테스트
             </Link>
             <button
               type="button"

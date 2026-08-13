@@ -44,6 +44,14 @@ export interface Order {
   checkoutId: string;
   items: CartItem[];
   totalValue: number;
+  /** 할인 전 상품 합계 (Talon 연동 시) */
+  subtotalValue?: number;
+  /** Talon 할인 합계 */
+  discountTotal?: number;
+  /** 적용된 쿠폰 코드 */
+  couponCodes?: string[];
+  /** Talon customer session id (= cartId) */
+  talonSessionId?: string;
   status: OrderStatus;
   createdAt: Date;
   /** 누적 부분·전체 환불 내역 */

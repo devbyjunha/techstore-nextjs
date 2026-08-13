@@ -1,10 +1,16 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, CheckCircle, CreditCard, Copy, ShoppingBag } from 'lucide-react';
+import TalonDiscountAccordion from '@/components/talon/TalonDiscountAccordion';
 import { useStore } from '@/context/StoreContext';
+import {
+  loadStoredCouponCode,
+  requestTalonSession,
+} from '@/lib/talon/browser';
+import type { EvaluateSessionResponse } from '@/lib/talon/types';
 
 export default function CheckoutPage() {
   const { state, startCheckout, placeOrder, addToast } = useStore();
@@ -12,13 +18,35 @@ export default function CheckoutPage() {
   const [isPlacing, setIsPlacing] = useState(false);
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
+  const [quote, setQuote] = useState<EvaluateSessionResponse | null>(null);
+  const [couponCode, setCouponCode] = useState('');
   const checkoutStarted = useRef(false);
 
   const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
-  const totalPrice = state.cart.reduce(
+  const subtotal = state.cart.reduce(
     (total, item) => total + item.product.price * item.quantity,
     0
   );
+  const totalDiscount = quote?.totalDiscount ?? 0;
+  const payable = quote?.total ?? subtotal;
+
+  const evaluateCart = useCallback(async () => {
+    if (!state.cartId || state.cart.length === 0) {
+      setQuote(null);
+      return;
+    }
+    const stored = loadStoredCouponCode();
+    setCouponCode(stored);
+    const result = await requestTalonSession({
+      sessionId: state.cartId,
+      cart: state.cart,
+      isLoggedIn: state.user.isLoggedIn,
+      email: state.user.email,
+      membershipTier: state.user.membershipTier,
+      couponCodes: stored ? [stored] : [],
+    });
+    setQuote(result);
+  }, [state.cart, state.cartId, state.user]);
 
   useEffect(() => {
     if (state.user.isLoggedIn) {
@@ -36,13 +64,22 @@ export default function CheckoutPage() {
     }
   }, [state.cart.length, completedOrderId, startCheckout]);
 
+  useEffect(() => {
+    if (completedOrderId) return;
+    void evaluateCart();
+  }, [evaluateCart, completedOrderId]);
+
   const formatPrice = (price: number) => new Intl.NumberFormat('ko-KR').format(price);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setIsPlacing(true);
-    const order = placeOrder({
+    const order = await placeOrder({
       guestName: state.user.isLoggedIn ? undefined : guestName,
       guestPhone: state.user.isLoggedIn ? undefined : guestPhone,
+      subtotalValue: subtotal,
+      discountTotal: totalDiscount,
+      totalValue: payable,
+      couponCodes: couponCode ? [couponCode] : [],
     });
     if (order) {
       setCompletedOrderId(order.id);
@@ -237,8 +274,14 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>상품 금액</span>
-                  <span>{formatPrice(totalPrice)}원</span>
+                  <span>{formatPrice(subtotal)}원</span>
                 </div>
+                <TalonDiscountAccordion
+                  totalDiscount={totalDiscount}
+                  effects={quote?.effects}
+                  couponCode={couponCode || undefined}
+                  formatPrice={formatPrice}
+                />
                 <div className="flex justify-between text-gray-600">
                   <span>배송비</span>
                   <span className="text-green-600">무료</span>
@@ -246,18 +289,20 @@ export default function CheckoutPage() {
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>총 결제금액</span>
-                    <span>{formatPrice(totalPrice)}원</span>
+                    <span>{formatPrice(payable)}원</span>
                   </div>
                 </div>
               </div>
 
               <button
-                onClick={handlePlaceOrder}
+                onClick={() => void handlePlaceOrder()}
                 disabled={isPlacing}
                 className="w-full flex items-center justify-center space-x-2 py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CreditCard size={20} />
-                <span>{isPlacing ? '주문 처리 중...' : `${formatPrice(totalPrice)}원 결제하기`}</span>
+                <span>
+                  {isPlacing ? '주문 처리 중...' : `${formatPrice(payable)}원 결제하기`}
+                </span>
               </button>
             </div>
           </div>

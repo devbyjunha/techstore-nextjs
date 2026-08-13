@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Star, ShoppingCart, ImageIcon, Zap } from 'lucide-react';
+import { Heart, Star, ShoppingCart, ImageIcon } from 'lucide-react';
 import { Product } from '@/types';
 import { useStore } from '@/context/StoreContext';
 
@@ -55,12 +55,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     <Link href={`/product/${product.id}`} className="group block">
       <article className="card-hover overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-sm">
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-slate-100 to-slate-50">
-          {product.isOnSale && (
-            <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-rose-500 px-2.5 py-1 text-xs font-bold text-white shadow-lg">
-              <Zap size={12} fill="currentColor" />
-              SALE
-            </span>
-          )}
+          {/* Catalog SALE badge disabled for Talon PoC — discounts are evaluated at cart. */}
           {!imageError ? (
             <Image
               src={product.image}
@@ -107,22 +102,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           <div className="flex items-end justify-between gap-2">
             <div>
-              {product.isOnSale && product.originalPrice ? (
-                <div className="space-y-0.5">
-                  <p className="text-xs text-slate-400 line-through">
-                    {formatPrice(product.originalPrice)}원
-                  </p>
-                  <p className="text-lg font-bold text-rose-600">
-                    {formatPrice(product.price)}
-                    <span className="text-sm font-normal text-slate-500">원</span>
-                  </p>
-                </div>
-              ) : (
-                <p className="text-lg font-bold text-slate-900">
-                  {formatPrice(product.price)}
-                  <span className="text-sm font-normal text-slate-500">원</span>
-                </p>
-              )}
+              <p className="text-lg font-bold text-slate-900">
+                {formatPrice(product.price)}
+                <span className="text-sm font-normal text-slate-500">원</span>
+              </p>
             </div>
 
             <button

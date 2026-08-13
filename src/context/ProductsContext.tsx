@@ -44,6 +44,27 @@ function saveToStorage(products: Product[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
 }
 
+/** Keep admin/local edits, seed new SKUs, and refresh catalog images from defaults. */
+function mergeWithDefaults(stored: Product[], defaults: Product[]): Product[] {
+  const defaultById = new Map(defaults.map((product) => [product.id, product]));
+  const existingIds = new Set(stored.map((product) => product.id));
+  const missing = defaults.filter((product) => !existingIds.has(product.id));
+
+  const refreshed = stored.map((product) => {
+    const seed = defaultById.get(product.id);
+    if (!seed) {
+      return product;
+    }
+    // Re-sync seed catalog images so fixed Unsplash URLs apply after deploys.
+    if (product.image !== seed.image) {
+      return { ...product, image: seed.image };
+    }
+    return product;
+  });
+
+  return missing.length > 0 ? [...missing, ...refreshed] : refreshed;
+}
+
 export function ProductsProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(defaultProducts);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -51,7 +72,7 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = loadFromStorage();
     if (stored?.length) {
-      setProducts(stored);
+      setProducts(mergeWithDefaults(stored, defaultProducts));
     }
     setIsHydrated(true);
   }, []);

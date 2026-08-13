@@ -9,6 +9,7 @@
 | [README.md](../README.md) | 처음 보는 사람용 요약, 설치·실행·Git 치트시트 |
 | [docs/PROJECT.md](./PROJECT.md) | 아키텍처·구조·환경 변수 (현재 문서) |
 | [docs/BRAZE-BANNERS.md](./BRAZE-BANNERS.md) | Braze Banners Web 연동 실무 가이드 (PDP PoC) |
+| [docs/TALON-ONE-POC.md](./TALON-ONE-POC.md) | Talon.One 프로모션·로열티 PoC (Dashboard·API·체크리스트) |
 | [.env.example](../.env.example) | 환경 변수 키 목록 (값은 직접 입력) |
 
 ---

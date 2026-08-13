@@ -13,7 +13,7 @@ export default function CategoryPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'rating'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [showSaleOnly, setShowSaleOnly] = useState(false);
+  const [showUnderThresholdOnly, setShowUnderThresholdOnly] = useState(false);
 
   // 카테고리명 매핑
   const categoryMap: { [key: string]: string } = {
@@ -33,9 +33,9 @@ export default function CategoryPage() {
   useEffect(() => {
     let filtered = products.filter(product => product.category === koreanCategory);
     
-    // 특가 상품만 보기 필터
-    if (showSaleOnly) {
-      filtered = filtered.filter(product => product.isOnSale);
+    // Talon C1 임계값(5만원) 미만 테스트 필터
+    if (showUnderThresholdOnly) {
+      filtered = filtered.filter((product) => product.price < 50_000);
     }
 
     // 정렬
@@ -63,7 +63,7 @@ export default function CategoryPage() {
     });
 
     setFilteredProducts(filtered);
-  }, [category, koreanCategory, sortBy, sortOrder, showSaleOnly, products]);
+  }, [category, koreanCategory, sortBy, sortOrder, showUnderThresholdOnly, products]);
 
   const handleSortChange = (newSortBy: 'name' | 'price' | 'rating') => {
     if (sortBy === newSortBy) {
@@ -97,14 +97,14 @@ export default function CategoryPage() {
             {/* 필터 및 정렬 */}
             <div className="mt-4 sm:mt-0 flex flex-wrap gap-4">
               <button
-                onClick={() => setShowSaleOnly(!showSaleOnly)}
+                onClick={() => setShowUnderThresholdOnly(!showUnderThresholdOnly)}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  showSaleOnly
-                    ? 'bg-red-500 text-white'
+                  showUnderThresholdOnly
+                    ? 'bg-amber-500 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                {showSaleOnly ? '특가 상품만' : '전체 상품'}
+                {showUnderThresholdOnly ? '5만원 미만만' : '전체 상품'}
               </button>
             </div>
           </div>
@@ -139,17 +139,18 @@ export default function CategoryPage() {
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {showSaleOnly ? '특가 상품이 없습니다' : '상품을 찾을 수 없습니다'}
+              {showUnderThresholdOnly
+                ? '5만원 미만 상품이 없습니다'
+                : '상품을 찾을 수 없습니다'}
             </h3>
             <p className="text-gray-600 mb-6">
-              {showSaleOnly 
-                ? '이 카테고리에는 현재 특가 상품이 없습니다.'
-                : '다른 카테고리를 확인해보세요.'
-              }
+              {showUnderThresholdOnly
+                ? '이 카테고리에는 5만원 미만 테스트 상품이 없습니다. 액세서리를 확인해보세요.'
+                : '다른 카테고리를 확인해보세요.'}
             </p>
-            {showSaleOnly && (
+            {showUnderThresholdOnly && (
               <button
-                onClick={() => setShowSaleOnly(false)}
+                onClick={() => setShowUnderThresholdOnly(false)}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 전체 상품 보기

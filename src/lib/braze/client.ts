@@ -122,6 +122,29 @@ export async function setBrazeUser(
   braze.requestBannersRefresh([getBrazeClientConfig().pdpBenefitsPlacementId]);
 }
 
+/**
+ * Braze `external_id` currently identified by the SDK (`changeUser` 이후).
+ * Talon.One `profileId`와 동일 키로 맞출 때 사용합니다.
+ */
+export async function getBrazeExternalUserId(): Promise<string | null> {
+  if (typeof window === 'undefined' || !isInitialized) {
+    return null;
+  }
+
+  const braze = await loadBrazeModule();
+  if (!braze) {
+    return null;
+  }
+
+  const userId = braze.getUser()?.getUserId();
+  if (typeof userId !== 'string') {
+    return null;
+  }
+
+  const trimmed = userId.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 export async function clearBrazeUser(): Promise<void> {
   if (!isInitialized) {
     return;

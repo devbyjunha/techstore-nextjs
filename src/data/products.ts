@@ -1,6 +1,47 @@
 import { Product } from '@/types';
 
 export const products: Product[] = [
+  // Talon PoC: C1 임계값(50,000원) 미만 테스트용 저가 상품
+  {
+    id: '35',
+    name: 'USB-C 고속 충전 케이블 (1m)',
+    description: 'Talon PoC용 저가 상품. 장바구니 합계 5만원 미만 할인 미적용 테스트에 사용합니다.',
+    price: 12000,
+    image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=500&h=500&fit=crop&crop=center',
+    category: '액세서리',
+    rating: 4.3,
+    reviews: 812
+  },
+  {
+    id: '36',
+    name: '실리콘 폰 케이스',
+    description: '기본형 실리콘 케이스. 5만원 미만 카트 테스트용 저가 상품입니다.',
+    price: 19000,
+    image: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=500&h=500&fit=crop&crop=center',
+    category: '액세서리',
+    rating: 4.2,
+    reviews: 534
+  },
+  {
+    id: '37',
+    name: '무선 마우스 패드',
+    description: '미끄럼 방지 마우스 패드. C1 캠페인 임계값 미만 시나리오용입니다.',
+    price: 15000,
+    image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=500&h=500&fit=crop&crop=center',
+    category: '액세서리',
+    rating: 4.1,
+    reviews: 298
+  },
+  {
+    id: '38',
+    name: '케이블 정리 클립 세트',
+    description: '데스크 케이블 정리용 클립 6개 세트. 합계 5만원 미만 테스트에 적합합니다.',
+    price: 8900,
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=500&fit=crop&crop=center',
+    category: '액세서리',
+    rating: 4.0,
+    reviews: 167
+  },
   {
     id: '1',
     name: 'MacBook Pro 14"',
@@ -271,7 +312,7 @@ export const products: Product[] = [
     originalPrice: 62990000,
     discount: 6,
     isOnSale: true,
-    image: 'https://images.unsplash.com/photo-1617788138017-80ad10651354?w=500&h=500&fit=crop&crop=center',
+    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=500&h=500&fit=crop&crop=center',
     category: '전기차',
     rating: 4.8,
     reviews: 2876
@@ -304,7 +345,7 @@ export const products: Product[] = [
     originalPrice: 47900000,
     discount: 6,
     isOnSale: true,
-    image: 'https://images.unsplash.com/photo-1593941707889-a5bba14938c7?w=500&h=500&fit=crop&crop=center',
+    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=500&h=500&fit=crop&crop=center',
     category: '전기차',
     rating: 4.5,
     reviews: 1234
@@ -314,7 +355,7 @@ export const products: Product[] = [
     name: 'BYD Seal',
     description: 'BYD의 프리미엄 전기 세단. 650km 주행거리와 CTB 배터리 일체형 기술을 적용.',
     price: 52900000,
-    image: 'https://images.unsplash.com/photo-1619405427369-a606c0153719?w=500&h=500&fit=crop&crop=center',
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=500&h=500&fit=crop&crop=center',
     category: '전기차',
     rating: 4.6,
     reviews: 678
@@ -357,7 +398,7 @@ export const products: Product[] = [
     name: '현대 아이오닉 6',
     description: '현대의 스트림라이너 디자인 전기 세단. 524km 주행거리와 세계 최고 수준의 공기역학.',
     price: 52800000,
-    image: 'https://images.unsplash.com/photo-1619405427369-a606c0153719?w=500&h=500&fit=crop&crop=center',
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=500&h=500&fit=crop&crop=center',
     category: '전기차',
     rating: 4.7,
     reviews: 2345
@@ -370,7 +411,7 @@ export const products: Product[] = [
     originalPrice: 54900000,
     discount: 5,
     isOnSale: true,
-    image: 'https://images.unsplash.com/photo-1593941707889-a5bba14938c7?w=500&h=500&fit=crop&crop=center',
+    image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=500&h=500&fit=crop&crop=center',
     category: '전기차',
     rating: 4.8,
     reviews: 3890
@@ -384,5 +425,5 @@ export const products: Product[] = [
     category: '전기차',
     rating: 4.9,
     reviews: 1567
-  }
+  },
 ];

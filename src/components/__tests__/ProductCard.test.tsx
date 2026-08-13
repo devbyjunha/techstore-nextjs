@@ -81,8 +81,9 @@ describe('ProductCard Component', () => {
 
     expect(screen.getByText('Test Product')).toBeInTheDocument();
     expect(screen.getByText(/100,000/)).toBeInTheDocument();
-    expect(screen.getByText(/120,000/)).toBeInTheDocument();
-    expect(screen.getByText('SALE')).toBeInTheDocument();
+    // Catalog SALE UI is disabled for Talon PoC — list price only.
+    expect(screen.queryByText(/120,000/)).not.toBeInTheDocument();
+    expect(screen.queryByText('SALE')).not.toBeInTheDocument();
     expect(screen.getByText('4.5')).toBeInTheDocument();
     expect(screen.getByText('(100)')).toBeInTheDocument();
     expect(screen.getByText('노트북')).toBeInTheDocument();
@@ -171,7 +172,8 @@ describe('ProductCard Component', () => {
     renderWithProvider(<ProductCard product={mockProduct} />);
 
     expect(screen.getByText(/100,000/)).toBeInTheDocument();
-    expect(screen.getByText(/120,000/)).toBeInTheDocument();
+    // Catalog strikethrough originalPrice is hidden for Talon PoC.
+    expect(screen.queryByText(/120,000/)).not.toBeInTheDocument();
   });
 
   it('should display rating and reviews', () => {
@@ -200,15 +202,11 @@ describe('ProductCard Component', () => {
     expect(screen.getByText('Test Product')).toBeInTheDocument();
   });
 
-  it('should show sale badge for sale products', () => {
+  it('should not show catalog SALE badge (Talon PoC uses cart discounts)', () => {
     renderWithProvider(<ProductCard product={mockProduct} />);
+    expect(screen.queryByText('SALE')).not.toBeInTheDocument();
 
-    expect(screen.getByText('SALE')).toBeInTheDocument();
-  });
-
-  it('should not show sale badge for regular products', () => {
     renderWithProvider(<ProductCard product={mockProductWithoutSale} />);
-
     expect(screen.queryByText('SALE')).not.toBeInTheDocument();
   });
 

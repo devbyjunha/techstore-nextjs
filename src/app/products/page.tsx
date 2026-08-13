@@ -3,25 +3,28 @@
 import { Suspense, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Sparkles, Tag } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import ProductCard from '@/components/ProductCard';
 import { useProducts } from '@/context/ProductsContext';
+
+const UNDER_THRESHOLD = 50_000;
 
 function ProductsPageContent() {
   const { products } = useProducts();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const saleOnly = searchParams.get('sale') === 'true';
+  const underOnly = searchParams.get('under') === '50000';
+
+  const underCount = products.filter((p) => p.price < UNDER_THRESHOLD).length;
 
   const displayedProducts = useMemo(
-    () => (saleOnly ? products.filter((p) => p.isOnSale) : products),
-    [saleOnly]
+    () =>
+      underOnly ? products.filter((p) => p.price < UNDER_THRESHOLD) : products,
+    [products, underOnly]
   );
 
-  const saleCount = products.filter((p) => p.isOnSale).length;
-
-  const setSaleFilter = (sale: boolean) => {
-    router.push(sale ? '/products?sale=true' : '/products');
+  const setUnderFilter = (enabled: boolean) => {
+    router.push(enabled ? '/products?under=50000' : '/products');
   };
 
   return (
@@ -36,20 +39,20 @@ function ProductsPageContent() {
             홈으로
           </Link>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            {saleOnly ? '특가 상품' : '전체 상품'}
+            {underOnly ? '5만원 미만 테스트 상품' : '전체 상품'}
           </h1>
           <p className="mt-2 text-slate-600">
-            {saleOnly
-              ? `지금 할인 중인 ${displayedProducts.length}개의 특가 상품`
-              : `TechStore의 모든 상품 ${displayedProducts.length}개를 만나보세요`}
+            {underOnly
+              ? `Talon C1 임계값(5만원) 미만 테스트용 ${displayedProducts.length}개 상품`
+              : `TechStore의 모든 상품 ${displayedProducts.length}개 · 할인은 장바구니에서 Talon이 평가합니다`}
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => setSaleFilter(false)}
+              onClick={() => setUnderFilter(false)}
               className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
-                !saleOnly
+                !underOnly
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/25'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
@@ -58,15 +61,14 @@ function ProductsPageContent() {
             </button>
             <button
               type="button"
-              onClick={() => setSaleFilter(true)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
-                saleOnly
-                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/25'
+              onClick={() => setUnderFilter(true)}
+              className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${
+                underOnly
+                  ? 'bg-amber-500 text-white shadow-md shadow-amber-500/25'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              <Tag size={16} />
-              특가 ({saleCount})
+              5만원 미만 ({underCount})
             </button>
           </div>
         </div>
@@ -80,16 +82,8 @@ function ProductsPageContent() {
             ))}
           </div>
         ) : (
-          <div className="py-20 text-center">
-            <Sparkles className="mx-auto mb-4 h-12 w-12 text-slate-300" />
-            <h2 className="text-xl font-semibold text-slate-900">표시할 상품이 없습니다</h2>
-            <button
-              type="button"
-              onClick={() => setSaleFilter(false)}
-              className="mt-6 rounded-xl px-6 py-2.5 font-semibold btn-primary"
-            >
-              전체 상품 보기
-            </button>
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-20 text-center">
+            <p className="text-slate-600">조건에 맞는 상품이 없습니다.</p>
           </div>
         )}
       </div>
@@ -101,8 +95,8 @@ export default function ProductsPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[50vh] items-center justify-center text-slate-500">
-          상품 목록을 불러오는 중...
+        <div className="flex min-h-screen items-center justify-center text-slate-500">
+          상품을 불러오는 중…
         </div>
       }
     >

@@ -28,10 +28,19 @@ import {
   saveOrdersToStorage,
 } from '@/lib/orders/storage';
 import { getRemainingItems, lineItemsTotal } from '@/lib/orders/refund';
+import {
+  clearStoredCouponCode,
+  finalizeTalonSession,
+} from '@/lib/talon/browser';
 
 export interface PlaceOrderParams {
   guestName?: string;
   guestPhone?: string;
+  /** Talon 적용 후 최종 결제 금액 */
+  totalValue?: number;
+  subtotalValue?: number;
+  discountTotal?: number;
+  couponCodes?: string[];
 }
 
 interface StoreState {
@@ -44,6 +53,7 @@ interface StoreState {
     isLoggedIn: boolean;
     name: string;
     email: string;
+    membershipTier?: string;
   };
   toasts: Toast[];
   notifications: Notification[];
@@ -155,7 +165,8 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
         user: {
           isLoggedIn: true,
           name: action.payload.name,
-          email: action.payload.email
+          email: action.payload.email,
+          membershipTier: action.payload.membershipTier,
         }
       };
     
@@ -165,7 +176,8 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
         user: {
           isLoggedIn: false,
           name: '',
-          email: ''
+          email: '',
+          membershipTier: undefined,
         }
       };
     
@@ -282,7 +294,7 @@ interface StoreContextType {
   markAllNotificationsRead: () => void;
   removeNotification: (notificationId: string) => void;
   startCheckout: () => string;
-  placeOrder: (params?: PlaceOrderParams) => Order | null;
+  placeOrder: (params?: PlaceOrderParams) => Promise<Order | null>;
   findOrder: (orderNumber: string) => Order | undefined;
   cancelOrder: (orderId: string, cancelReason?: string) => void;
   refundOrder: (orderId: string, refundItems: CartItem[]) => boolean;
@@ -340,20 +352,41 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return checkoutId;
   }, [state.cartId, state.cart]);
 
-  const placeOrder = useCallback((params?: PlaceOrderParams): Order | null => {
+  const placeOrder = useCallback(async (params?: PlaceOrderParams): Promise<Order | null> => {
     if (state.cart.length === 0) {
       return null;
     }
     const createdAt = new Date();
     const existingIds = state.orders.map((o) => o.id);
     const isGuest = !state.user.isLoggedIn;
+    const subtotalValue = params?.subtotalValue ?? cartTotal(state.cart);
+    const discountTotal = params?.discountTotal ?? 0;
+    const totalValue = params?.totalValue ?? Math.max(0, subtotalValue - discountTotal);
+    const couponCodes = params?.couponCodes?.filter(Boolean) ?? [];
+
+    // Close Talon session before clearing the cart (best-effort).
+    if (state.cartId) {
+      await finalizeTalonSession({
+        sessionId: state.cartId,
+        cart: state.cart,
+        isLoggedIn: state.user.isLoggedIn,
+        email: state.user.email,
+        membershipTier: state.user.membershipTier,
+        couponCodes,
+        state: 'closed',
+      });
+    }
 
     const order: Order = {
       id: generateOrderNumber(createdAt, existingIds),
       cartId: state.cartId,
       checkoutId: state.checkoutId,
       items: state.cart,
-      totalValue: cartTotal(state.cart),
+      totalValue,
+      subtotalValue,
+      discountTotal,
+      couponCodes: couponCodes.length > 0 ? couponCodes : undefined,
+      talonSessionId: state.cartId || undefined,
       status: 'completed',
       createdAt,
       isGuest,
@@ -369,6 +402,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cart: order.items,
     });
     baseDispatch({ type: 'PLACE_ORDER', payload: order });
+    clearStoredCouponCode();
     return order;
   }, [state.cart, state.cartId, state.checkoutId, state.orders, state.user]);
 
@@ -388,6 +422,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const order = state.orders.find((o) => o.id === orderId);
       if (!order) {
         return;
+      }
+      const sessionId = order.talonSessionId || order.cartId;
+      if (sessionId) {
+        void finalizeTalonSession({
+          sessionId,
+          cart: order.items,
+          isLoggedIn: Boolean(order.userEmail),
+          email: order.userEmail,
+          couponCodes: order.couponCodes,
+          state: 'cancelled',
+        });
       }
       void logBrazeOrderCancelled({
         orderId: order.id,
@@ -432,10 +477,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return true;
   }, [state.orders]);
 
-  const addToast = (toast: Omit<Toast, 'id'>) => {
+  const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = Math.random().toString(36).substr(2, 9);
     dispatch({ type: 'ADD_TOAST', payload: { ...toast, id } });
-  };
+  }, [dispatch]);
 
   const addNotification = (notification: Omit<Notification, 'id' | 'createdAt'>) => {
     const id = Math.random().toString(36).substr(2, 9);
