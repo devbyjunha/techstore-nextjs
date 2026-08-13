@@ -9,7 +9,9 @@
     "lint": "eslint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "talon:create-coupon": "node --env-file=.env.local scripts/talon-management/create-coupon.mjs",
+    "talon:import-coupons": "node --env-file=.env.local scripts/talon-management/import-coupons.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.42.3",

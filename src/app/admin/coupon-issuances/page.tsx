@@ -20,6 +20,7 @@ interface CouponHistoryItem {
   idempotency_key: string;
   issued_at: string;
   request_count: number;
+  source?: 'talon' | 'local';
 }
 
 interface HistoryResponse {
@@ -283,6 +284,7 @@ export default function AdminCouponIssuancesPage() {
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-4 py-3 font-medium">쿠폰 코드</th>
+                <th className="px-4 py-3 font-medium">Source</th>
                 <th className="px-4 py-3 font-medium">프로모션</th>
                 <th className="px-4 py-3 font-medium">Campaign / Dispatch</th>
                 <th className="px-4 py-3 font-medium">User ID</th>
@@ -293,14 +295,14 @@ export default function AdminCouponIssuancesPage() {
             <tbody className="divide-y divide-slate-100">
               {loading && items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                     <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />
                     불러오는 중...
                   </td>
                 </tr>
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                     발급 이력이 없습니다. Connected Content API로 쿠폰을 발급해 보세요.
                   </td>
                 </tr>
@@ -314,6 +316,17 @@ export default function AdminCouponIssuancesPage() {
                       <p className="text-xs text-slate-500">
                         {item.discount_percent}% 할인
                       </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          item.source === 'talon'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {item.source === 'talon' ? 'Talon' : item.source ?? '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-slate-700">
                       {item.promotion_id}

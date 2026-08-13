@@ -16,6 +16,7 @@ import {
   Activity,
   BookOpen,
   Ticket,
+  Upload,
 } from 'lucide-react';
 
 type NavItem = {
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/admin/categories', label: '카테고리', icon: FolderTree },
   { href: '/admin/promotions', label: '프로모션', icon: Tag },
   { href: '/admin/coupon-issuances', label: '쿠폰 발급 이력', icon: Ticket },
+  { href: '/admin/talon-coupons', label: 'Talon 쿠폰 (MAPI)', icon: Upload },
   { href: '/admin/analytics', label: '분석', icon: BarChart3 },
   { href: '/admin/api-docs', label: 'API 문서', icon: BookOpen },
   { href: '/admin/braze-api', label: 'Braze API 테스트', icon: Radio },

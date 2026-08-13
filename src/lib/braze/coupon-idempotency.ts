@@ -1,3 +1,6 @@
+import { createManagementCoupon } from '@/lib/talon/management-client';
+import { getTalonManagementConfig } from '@/lib/talon/config';
+
 export interface CouponIssuanceRecord {
   idempotencyKey: string;
   campaignApiId: string;
@@ -8,6 +11,8 @@ export interface CouponIssuanceRecord {
   discountPercent: number;
   issuedAt: string;
   requestCount: number;
+  /** Where the code was minted: Talon Management Create, or local fallback. */
+  source: 'talon' | 'local';
 }
 
 export interface CouponIssueParams {
@@ -35,6 +40,11 @@ export type CouponIssueResult =
       status: 'duplicate';
       record: CouponIssuanceRecord;
       duplicateRequestAt: string;
+    }
+  | {
+      status: 'error';
+      error: string;
+      httpStatus: number;
     };
 
 const issuanceStore = new Map<string, CouponIssuanceRecord>();
@@ -48,9 +58,14 @@ export function buildIdempotencyKey(
   return `${campaignApiId}:${dispatchId}:${promotionId}:${userId}`;
 }
 
-export function issueCouponWithIdempotency(
+/**
+ * Braze Connected Content 쿠폰 발급.
+ * 1) 멱등 키로 중복이면 기존 코드 반환 (Talon 재호출 없음)
+ * 2) 신규면 Talon Management Create → 실패/미설정 시 정책에 따라 처리
+ */
+export async function issueCouponWithIdempotency(
   params: CouponIssueParams
-): CouponIssueResult {
+): Promise<CouponIssueResult> {
   const discountPercent = params.discountPercent ?? 10;
   const idempotencyKey = buildIdempotencyKey(
     params.campaignApiId,
@@ -58,7 +73,7 @@ export function issueCouponWithIdempotency(
     params.promotionId,
     params.userId
   );
-  const duplicateRequestAt = new Date().toISOString();
+  const now = new Date().toISOString();
 
   const existing = issuanceStore.get(idempotencyKey);
   if (existing) {
@@ -67,7 +82,16 @@ export function issueCouponWithIdempotency(
     return {
       status: 'duplicate',
       record: existing,
-      duplicateRequestAt,
+      duplicateRequestAt: now,
+    };
+  }
+
+  const minted = await mintCouponCode(params.userId);
+  if (!minted.ok) {
+    return {
+      status: 'error',
+      error: minted.error,
+      httpStatus: minted.httpStatus,
     };
   }
 
@@ -77,14 +101,46 @@ export function issueCouponWithIdempotency(
     dispatchId: params.dispatchId,
     promotionId: params.promotionId,
     userId: params.userId,
-    couponCode: generateCouponCode(),
+    couponCode: minted.code,
     discountPercent,
-    issuedAt: duplicateRequestAt,
+    issuedAt: now,
     requestCount: 1,
+    source: minted.source,
   };
 
   issuanceStore.set(idempotencyKey, record);
   return { status: 'issued', record };
+}
+
+async function mintCouponCode(
+  userId: string
+): Promise<
+  | { ok: true; code: string; source: 'talon' | 'local' }
+  | { ok: false; error: string; httpStatus: number }
+> {
+  const management = getTalonManagementConfig();
+
+  // Management 미설정: 로컬 PoC 코드 (단위 테스트·오프라인용)
+  if (!management.enabled) {
+    return { ok: true, code: generateCouponCode(), source: 'local' };
+  }
+
+  const result = await createManagementCoupon({
+    recipientIntegrationId: userId,
+  });
+
+  const code = result.data?.codes?.[0];
+  if (!result.ok || !code) {
+    return {
+      ok: false,
+      error:
+        result.error ||
+        'Talon.One Management API Create coupons failed (no code returned).',
+      httpStatus: result.status || 502,
+    };
+  }
+
+  return { ok: true, code, source: 'talon' };
 }
 
 export function getCouponIssuanceRecord(

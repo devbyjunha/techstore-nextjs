@@ -195,8 +195,10 @@ export const API_DOC_SECTIONS: ApiDocSection[] = [
         ),
         notes: [
           'Campaign 전용. promotion_id는 캠페인에서 고정 문자열 또는 Liquid 변수로 전달합니다.',
+          '신규 발급 시 Talon Management API Create coupons 호출 (recipientIntegrationId = user_id). source=talon.',
+          'TALON_ONE_MANAGEMENT_* 미설정 시 local TS-**** 코드로 fallback.',
           'Braze는 1회 발송당 Connected Content를 여러 번 호출할 수 있습니다. POST 사용을 권장합니다 (GET은 Braze 캐시 대상).',
-          '중복 호출 시 status=duplicate, 동일 coupon_code 반환. HTTP 200 유지 (Braze retry 방지).',
+          '중복 호출 시 status=duplicate, 동일 coupon_code 반환. HTTP 200 유지 (Braze retry 방지). Talon 재호출 없음.',
           'PoC는 인메모리 저장이라 서버 재시작 시 이력이 초기화됩니다.',
         ],
         links: [

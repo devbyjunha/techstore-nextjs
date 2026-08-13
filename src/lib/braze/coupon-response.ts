@@ -16,6 +16,8 @@ export interface CouponApiResponse {
   idempotency_key: string;
   issued_at: string;
   request_count: number;
+  /** talon = Management Create, local = fallback generator */
+  source: 'talon' | 'local';
   duplicate_request_at?: string;
 }
 
@@ -29,9 +31,12 @@ export interface CouponHistoryItem {
   idempotency_key: string;
   issued_at: string;
   request_count: number;
+  source: 'talon' | 'local';
 }
 
-export function toCouponApiResponse(result: CouponIssueResult): CouponApiResponse {
+export function toCouponApiResponse(
+  result: Extract<CouponIssueResult, { status: 'issued' | 'duplicate' }>
+): CouponApiResponse {
   const { record } = result;
   const base = toCouponHistoryItem(record);
 
@@ -40,7 +45,10 @@ export function toCouponApiResponse(result: CouponIssueResult): CouponApiRespons
       success: true,
       status: 'issued',
       ...base,
-      message: `${record.discountPercent}% 할인 쿠폰이 발급되었습니다.`,
+      message:
+        record.source === 'talon'
+          ? `${record.discountPercent}% 할인 쿠폰이 Talon.One에서 발급되었습니다.`
+          : `${record.discountPercent}% 할인 쿠폰이 발급되었습니다. (local fallback)`,
     };
   }
 
@@ -67,5 +75,6 @@ export function toCouponHistoryItem(
     idempotency_key: record.idempotencyKey,
     issued_at: record.issuedAt,
     request_count: record.requestCount,
+    source: record.source,
   };
 }
