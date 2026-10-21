@@ -30,8 +30,14 @@ import {
 import { getRemainingItems, lineItemsTotal } from '@/lib/orders/refund';
 import {
   clearStoredCouponCode,
+  clearStoredGiftCard,
   finalizeTalonSession,
 } from '@/lib/talon/browser';
+import {
+  clearAppSession,
+  loadAppSession,
+  saveAppSession,
+} from '@/lib/auth/session';
 
 export interface PlaceOrderParams {
   guestName?: string;
@@ -41,6 +47,9 @@ export interface PlaceOrderParams {
   subtotalValue?: number;
   discountTotal?: number;
   couponCodes?: string[];
+  /** 기프트카드 사용 코드 및 금액 */
+  giftCardCode?: string;
+  giftCardAmount?: number;
 }
 
 interface StoreState {
@@ -74,6 +83,7 @@ type StoreAction =
   | { type: 'ADD_TO_WISHLIST'; payload: Product }
   | { type: 'REMOVE_FROM_WISHLIST'; payload: string }
   | { type: 'LOGIN'; payload: { name: string; email: string; membershipTier?: string } }
+  | { type: 'HYDRATE_USER'; payload: { name: string; email: string; membershipTier?: string } }
   | { type: 'LOGOUT' }
   | { type: 'CLEAR_CART' }
   | { type: 'START_CHECKOUT'; payload: { checkoutId: string } }
@@ -160,6 +170,7 @@ function storeReducer(state: StoreState, action: StoreAction): StoreState {
       };
     
     case 'LOGIN':
+    case 'HYDRATE_USER':
       return {
         ...state,
         user: {
@@ -309,6 +320,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = loadOrdersFromStorage();
     baseDispatch({ type: 'HYDRATE_ORDERS', payload: stored });
+    const session = loadAppSession();
+    if (session) {
+      baseDispatch({ type: 'HYDRATE_USER', payload: session });
+    }
   }, []);
 
   useEffect(() => {
@@ -322,6 +337,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const dispatch = useCallback((action: StoreAction) => {
     if (action.type === 'CLEAR_CART' && state.cartId) {
       void logBrazeCartUpdated({ cartId: state.cartId, cart: [] });
+    }
+    if (action.type === 'LOGIN') {
+      saveAppSession(action.payload);
+    }
+    if (action.type === 'LOGOUT') {
+      clearAppSession();
     }
     baseDispatch(action);
     void trackStoreAction(action);
@@ -386,6 +407,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       subtotalValue,
       discountTotal,
       couponCodes: couponCodes.length > 0 ? couponCodes : undefined,
+      giftCardCode: params?.giftCardCode,
+      giftCardAmount: params?.giftCardAmount,
       talonSessionId: state.cartId || undefined,
       status: 'completed',
       createdAt,
@@ -395,6 +418,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       userEmail: state.user.isLoggedIn ? state.user.email : undefined,
       refunds: [],
     };
+
+    // 기프트카드가 사용된 경우 Talon.One 잔액 차감 처리 (best-effort)
+    if (params?.giftCardCode && params?.giftCardAmount && params.giftCardAmount > 0 && state.user.email) {
+      try {
+        await fetch('/api/v1/gift-cards/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profileId: state.user.email,
+            code: params.giftCardCode,
+            amount: params.giftCardAmount,
+            orderId: order.id,
+          }),
+        });
+      } catch (err) {
+        console.error('기프트카드 차감 요청 실패:', err);
+      }
+    }
+
     // Fire before dispatch so the event captures the cart prior to clearing.
     void logBrazeOrderPlaced({
       orderId: order.id,
@@ -403,6 +445,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     baseDispatch({ type: 'PLACE_ORDER', payload: order });
     clearStoredCouponCode();
+    clearStoredGiftCard();
     return order;
   }, [state.cart, state.cartId, state.checkoutId, state.orders, state.user]);
 

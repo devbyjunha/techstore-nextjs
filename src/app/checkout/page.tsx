@@ -5,10 +5,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, CheckCircle, CreditCard, Copy, ShoppingBag } from 'lucide-react';
 import TalonDiscountAccordion from '@/components/talon/TalonDiscountAccordion';
+import GiftCardSelector from '@/components/cart/GiftCardSelector';
 import { useStore } from '@/context/StoreContext';
 import {
   loadStoredCouponCode,
+  loadStoredGiftCard,
   requestTalonSession,
+  saveStoredGiftCard,
+  type StoredGiftCardApplication,
 } from '@/lib/talon/browser';
 import type { EvaluateSessionResponse } from '@/lib/talon/types';
 
@@ -20,6 +24,7 @@ export default function CheckoutPage() {
   const [guestPhone, setGuestPhone] = useState('');
   const [quote, setQuote] = useState<EvaluateSessionResponse | null>(null);
   const [couponCode, setCouponCode] = useState('');
+  const [appliedGiftCard, setAppliedGiftCard] = useState<StoredGiftCardApplication | null>(null);
   const checkoutStarted = useRef(false);
 
   const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
@@ -28,7 +33,11 @@ export default function CheckoutPage() {
     0
   );
   const totalDiscount = quote?.totalDiscount ?? 0;
-  const payable = quote?.total ?? subtotal;
+  const payableBeforeGiftCard = quote?.total ?? subtotal;
+  const giftCardDeduction = appliedGiftCard
+    ? Math.min(appliedGiftCard.amount, payableBeforeGiftCard)
+    : 0;
+  const payable = Math.max(0, payableBeforeGiftCard - giftCardDeduction);
 
   const evaluateCart = useCallback(async () => {
     if (!state.cartId || state.cart.length === 0) {
@@ -65,6 +74,13 @@ export default function CheckoutPage() {
   }, [state.cart.length, completedOrderId, startCheckout]);
 
   useEffect(() => {
+    const storedCard = loadStoredGiftCard();
+    if (storedCard) {
+      setAppliedGiftCard(storedCard);
+    }
+  }, []);
+
+  useEffect(() => {
     if (completedOrderId) return;
     void evaluateCart();
   }, [evaluateCart, completedOrderId]);
@@ -80,6 +96,8 @@ export default function CheckoutPage() {
       discountTotal: totalDiscount,
       totalValue: payable,
       couponCodes: couponCode ? [couponCode] : [],
+      giftCardCode: appliedGiftCard && giftCardDeduction > 0 ? appliedGiftCard.code : undefined,
+      giftCardAmount: appliedGiftCard && giftCardDeduction > 0 ? giftCardDeduction : undefined,
     });
     if (order) {
       setCompletedOrderId(order.id);
@@ -286,6 +304,12 @@ export default function CheckoutPage() {
                   <span>배송비</span>
                   <span className="text-green-600">무료</span>
                 </div>
+                {appliedGiftCard && giftCardDeduction > 0 ? (
+                  <div className="flex justify-between text-blue-700 text-sm">
+                    <span>기프트카드 ({appliedGiftCard.code})</span>
+                    <span>-{formatPrice(giftCardDeduction)}원</span>
+                  </div>
+                ) : null}
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>총 결제금액</span>
@@ -304,6 +328,30 @@ export default function CheckoutPage() {
                   {isPlacing ? '주문 처리 중...' : `${formatPrice(payable)}원 결제하기`}
                 </span>
               </button>
+
+              <GiftCardSelector
+                userEmail={state.user.email}
+                isLoggedIn={state.user.isLoggedIn}
+                maxPayable={payableBeforeGiftCard}
+                appliedCard={appliedGiftCard}
+                onApply={(card) => {
+                  setAppliedGiftCard(card);
+                  saveStoredGiftCard(card);
+                  if (card) {
+                    addToast({
+                      type: 'success',
+                      message: `기프트카드 ${card.code} (${formatPrice(card.amount)}원)이 적용되었습니다.`,
+                      duration: 2500,
+                    });
+                  } else {
+                    addToast({
+                      type: 'info',
+                      message: '기프트카드 적용이 취소되었습니다.',
+                      duration: 2000,
+                    });
+                  }
+                }}
+              />
             </div>
           </div>
         </div>

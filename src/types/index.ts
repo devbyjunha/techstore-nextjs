@@ -56,6 +56,10 @@ export interface Order {
   createdAt: Date;
   /** 누적 부분·전체 환불 내역 */
   refunds?: OrderRefund[];
+  /** 사용된 기프트카드 코드 */
+  giftCardCode?: string;
+  /** 기프트카드 결제 금액 */
+  giftCardAmount?: number;
   /** 비회원 주문 여부 */
   isGuest: boolean;
   guestName?: string;

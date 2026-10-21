@@ -5,12 +5,16 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Trash2, ArrowLeft, ShoppingBag, CreditCard } from 'lucide-react';
 import TalonDiscountAccordion from '@/components/talon/TalonDiscountAccordion';
+import GiftCardSelector from '@/components/cart/GiftCardSelector';
 import { useStore } from '@/context/StoreContext';
 import { useProducts } from '@/context/ProductsContext';
 import {
   loadStoredCouponCode,
+  loadStoredGiftCard,
   requestTalonSession,
   saveStoredCouponCode,
+  saveStoredGiftCard,
+  type StoredGiftCardApplication,
 } from '@/lib/talon/browser';
 import type { EvaluateSessionResponse } from '@/lib/talon/types';
 
@@ -19,6 +23,7 @@ export default function CartPage() {
   const { state, dispatch, addToast } = useStore();
   const [couponInput, setCouponInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState('');
+  const [appliedGiftCard, setAppliedGiftCard] = useState<StoredGiftCardApplication | null>(null);
   const [quote, setQuote] = useState<EvaluateSessionResponse | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   /** true only after user clicks Apply — used to toast accept/reject once */
@@ -37,7 +42,11 @@ export default function CartPage() {
   );
   const totalItems = state.cart.reduce((total, item) => total + item.quantity, 0);
   const totalDiscount = quote?.totalDiscount ?? 0;
-  const payable = quote?.total ?? totalPrice;
+  const payableBeforeGiftCard = quote?.total ?? totalPrice;
+  const giftCardDeduction = appliedGiftCard
+    ? Math.min(appliedGiftCard.amount, payableBeforeGiftCard)
+    : 0;
+  const payable = Math.max(0, payableBeforeGiftCard - giftCardDeduction);
 
   const evaluateCart = useCallback(
     async (couponCode: string) => {
@@ -110,6 +119,10 @@ export default function CartPage() {
       setCouponInput(stored);
       setAppliedCoupon(stored);
     }
+    const storedCard = loadStoredGiftCard();
+    if (storedCard) {
+      setAppliedGiftCard(storedCard);
+    }
   }, []);
 
   // Single evaluation path: cart / user / applied coupon changes.
@@ -174,6 +187,8 @@ export default function CartPage() {
   const handleClearCart = () => {
     dispatch({ type: 'CLEAR_CART' });
     handleClearCoupon();
+    setAppliedGiftCard(null);
+    saveStoredGiftCard(null);
     setQuote(null);
     addToast({
       type: 'info',
@@ -362,6 +377,12 @@ export default function CartPage() {
                     <span>{formatPrice(quote.loyalty.willEarn)} P</span>
                   </div>
                 ) : null}
+                {appliedGiftCard && giftCardDeduction > 0 ? (
+                  <div className="flex justify-between text-blue-700 text-sm">
+                    <span>기프트카드 ({appliedGiftCard.code})</span>
+                    <span>-{formatPrice(giftCardDeduction)}원</span>
+                  </div>
+                ) : null}
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>총 결제금액</span>
@@ -420,11 +441,39 @@ export default function CartPage() {
                     </button>
                   </div>
                 )}
-                {state.user.membershipTier && (
+                {state.user.membershipTier ? (
                   <p className="mt-2 text-xs text-gray-500">
-                    멤버십: {state.user.membershipTier}
+                    멤버십: {state.user.membershipTier} (클라이언트가 Talon에 전송)
                   </p>
-                )}
+                ) : state.user.isLoggedIn ? (
+                  <p className="mt-2 text-xs text-gray-500">
+                    멤버십: 클라이언트 미전송 · Talon 이관 프로필 사용
+                  </p>
+                ) : null}
+
+                <GiftCardSelector
+                  userEmail={state.user.email}
+                  isLoggedIn={state.user.isLoggedIn}
+                  maxPayable={payableBeforeGiftCard}
+                  appliedCard={appliedGiftCard}
+                  onApply={(card) => {
+                    setAppliedGiftCard(card);
+                    saveStoredGiftCard(card);
+                    if (card) {
+                      addToast({
+                        type: 'success',
+                        message: `기프트카드 ${card.code} (${formatPrice(card.amount)}원)이 적용되었습니다.`,
+                        duration: 2500,
+                      });
+                    } else {
+                      addToast({
+                        type: 'info',
+                        message: '기프트카드 적용이 취소되었습니다.',
+                        duration: 2000,
+                      });
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>

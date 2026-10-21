@@ -12,7 +12,9 @@ export interface TalonManagementConfig {
   managementApiKey: string;
   applicationId: string;
   couponCampaignId: string;
+  giftCardProgramId: string;
   enabled: boolean;
+  giftCardsEnabled: boolean;
 }
 
 export function getTalonServerConfig(): TalonServerConfig {
@@ -35,14 +37,17 @@ export function getTalonManagementConfig(): TalonManagementConfig {
   const managementApiKey = process.env.TALON_ONE_MANAGEMENT_API_KEY ?? '';
   const applicationId = process.env.TALON_ONE_APPLICATION_ID ?? '';
   const couponCampaignId = process.env.TALON_ONE_COUPON_CAMPAIGN_ID ?? '';
+  const giftCardProgramId = process.env.TALON_ONE_GIFT_CARD_PROGRAM_ID ?? '';
 
   return {
     baseUrl,
     managementApiKey,
     applicationId,
     couponCampaignId,
+    giftCardProgramId,
     enabled: Boolean(
       baseUrl && managementApiKey && applicationId && couponCampaignId
     ),
+    giftCardsEnabled: Boolean(baseUrl && managementApiKey && giftCardProgramId),
   };
 }

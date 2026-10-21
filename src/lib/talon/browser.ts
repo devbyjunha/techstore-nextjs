@@ -4,6 +4,36 @@ import { cartSubtotal, mapCartItemsToTalon, resolveTalonProfileId } from './map-
 import type { EvaluateSessionResponse, TalonSessionState } from './types';
 
 const COUPON_STORAGE_KEY = 'techstore-talon-coupon';
+const GIFT_CARD_STORAGE_KEY = 'techstore-talon-gift-card';
+
+export interface StoredGiftCardApplication {
+  code: string;
+  amount: number;
+}
+
+export function loadStoredGiftCard(): StoredGiftCardApplication | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(GIFT_CARD_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveStoredGiftCard(card: StoredGiftCardApplication | null): void {
+  if (typeof window === 'undefined') return;
+  if (card && card.code && card.amount > 0) {
+    sessionStorage.setItem(GIFT_CARD_STORAGE_KEY, JSON.stringify(card));
+  } else {
+    sessionStorage.removeItem(GIFT_CARD_STORAGE_KEY);
+  }
+}
+
+export function clearStoredGiftCard(): void {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(GIFT_CARD_STORAGE_KEY);
+}
 
 export function loadStoredCouponCode(): string {
   if (typeof window === 'undefined') return '';

@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { User, Package, Heart, ShoppingCart, Settings, LogOut, ArrowLeft, Search } from 'lucide-react';
+import { User, Package, Heart, ShoppingCart, Settings, LogOut, ArrowLeft, Search, CreditCard } from 'lucide-react';
+import GiftCardPanel from '@/components/mypage/GiftCardPanel';
 import { useStore } from '@/context/StoreContext';
 import OrderCard from '@/components/orders/OrderCard';
 import BrazePushSettings from '@/components/BrazePushSettings';
@@ -171,6 +172,7 @@ export default function MyPage() {
   const tabs = [
     { id: 'profile', name: '프로필', icon: User },
     { id: 'orders', name: '주문 내역', icon: Package },
+    { id: 'giftcards', name: '기프트카드', icon: CreditCard },
     { id: 'wishlist', name: '찜한 상품', icon: Heart },
     { id: 'cart', name: '장바구니', icon: ShoppingCart },
     { id: 'settings', name: '설정', icon: Settings },
@@ -224,6 +226,9 @@ export default function MyPage() {
             </div>
           </div>
         );
+
+      case 'giftcards':
+        return <GiftCardPanel profileId={state.user.email} />;
 
       case 'orders':
         return (

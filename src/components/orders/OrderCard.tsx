@@ -98,6 +98,13 @@ export default function OrderCard({
           </div>
         )}
 
+        {order.giftCardCode && (order.giftCardAmount ?? 0) > 0 && (
+          <div className="mb-3 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800 flex justify-between">
+            <span>기프트카드 결제 ({order.giftCardCode})</span>
+            <span className="font-semibold">{formatPrice(order.giftCardAmount!)}원</span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between border-t pt-3">
           <div>
             <span className="font-bold text-gray-900">
