@@ -12,13 +12,12 @@ jobs:
       - name: Send commit summary to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          EVENT_FILE: ${{ github.event_path }}
           REPOSITORY: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
           ACTOR: ${{ github.actor }}
           COMPARE_URL: ${{ github.event.compare }}
         run: |
-          commits=$(jq -r '[.commits[] | "- <\(.url)|\(.message | split("\n")[0])> — \(.author.name)"] | join("\n")' "$EVENT_FILE")
+          commits=$(jq -r '[.commits[] | "- <\(.url)|\(.message | split("\n")[0])> — \(.author.name)"] | join("\n")' "$GITHUB_EVENT_PATH")
           text=$(printf '*%s*에 커밋이 push되었습니다.\n브랜치: `%s`\n실행자: %s\n비교: %s\n\n%s' \
             "$REPOSITORY" "$BRANCH" "$ACTOR" "$COMPARE_URL" "$commits")
           jq -n --arg text "$text" '{text: $text}' |
