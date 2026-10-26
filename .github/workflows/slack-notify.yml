@@ -12,14 +12,25 @@ jobs:
       - name: Send commit summary to Slack
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          REPOSITORY: ${{ github.repository }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
           BRANCH: ${{ github.ref_name }}
-          ACTOR: ${{ github.actor }}
-          COMPARE_URL: ${{ github.event.compare }}
         run: |
-          commits=$(jq -r '[.commits[] | "- <\(.url)|\(.message | split("\n")[0])> — \(.author.name)"] | join("\n")' "$GITHUB_EVENT_PATH")
-          text=$(printf '*%s*에 커밋이 push되었습니다.\n브랜치: `%s`\n실행자: %s\n비교: %s\n\n%s' \
-            "$REPOSITORY" "$BRANCH" "$ACTOR" "$COMPARE_URL" "$commits")
+          commits=$(jq -r '
+            [
+              .commits[] |
+              . as $commit |
+              ([$commit.added[]?, $commit.modified[]?, $commit.removed[]?] | unique) as $files |
+              ("• *" + ($commit.message | split("\n")[0]) + "*" +
+                ([$commit.message | split("\n") | .[1:] | map(select(length > 0)) | join(" ")][0] as $body |
+                  if $body != "" then "\n  설명: " + $body else "" end) +
+                (if ($files | length) > 0
+                 then "\n  변경 파일: " + ($files[:8] | map("`" + . + "`") | join(", ")) +
+                   (if ($files | length) > 8 then " 외 " + (($files | length) - 8 | tostring) + "개" else "" end)
+                 else "" end))
+            ] | join("\n\n") | gsub("https?://[^[:space:]]+"; "[URL 제외]")
+          ' "$GITHUB_EVENT_PATH")
+          text=$(printf '*%s*에 새 push가 있습니다.\n브랜치: `%s`\n\n*개발 내용*\n%s' \
+            "$REPOSITORY_NAME" "$BRANCH" "$commits")
           jq -n --arg text "$text" '{text: $text}' |
             curl -fsS -X POST \
               -H 'Content-Type: application/json' \
