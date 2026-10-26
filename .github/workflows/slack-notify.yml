@@ -4,9 +4,16 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      summary:
+        description: Slack에 보낼 요약 메시지
+        required: true
+        type: string
 
 jobs:
   notify:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[skip slack]'))
     runs-on: ubuntu-latest
     steps:
       - name: Send commit summary to Slack
@@ -14,24 +21,29 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           REPOSITORY_NAME: ${{ github.event.repository.name }}
           BRANCH: ${{ github.ref_name }}
+          SUMMARY: ${{ inputs.summary }}
         run: |
-          commits=$(jq -r '
-            [
-              .commits[] |
-              . as $commit |
-              ([$commit.added[]?, $commit.modified[]?, $commit.removed[]?] | unique) as $files |
-              ("• *" + ($commit.message | split("\n")[0]) + "*" +
-                ([$commit.message | split("\n") | .[1:] | map(select(length > 0)) | join(" ")][0] as $body |
-                  if $body != "" then "\n  설명: " + $body else "" end) +
-                (if ($files | length) > 0
-                 then "\n  변경 파일: " + ($files[:8] | map("`" + . + "`") | join(", ")) +
-                   (if ($files | length) > 8 then " 외 " + (($files | length) - 8 | tostring) + "개" else "" end)
-                 else "" end))
-            ] | join("\n\n") | gsub("https?://[^[:space:]]+"; "[URL 제외]")
-          ' "$GITHUB_EVENT_PATH")
-          text=$(printf '*%s*에 새 push가 있습니다.\n브랜치: `%s`\n\n*개발 내용*\n%s' \
-            "$REPOSITORY_NAME" "$BRANCH" "$commits")
-          jq -n --arg text "$text" '{text: $text}' |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            text="$SUMMARY"
+          else
+            commits=$(jq -r '
+              [
+                .commits[] |
+                . as $commit |
+                ([$commit.added[]?, $commit.modified[]?, $commit.removed[]?] | unique) as $files |
+                ("• *" + ($commit.message | split("\n")[0]) + "*" +
+                  ([$commit.message | split("\n") | .[1:] | map(select(length > 0)) | join(" ")][0] as $body |
+                    if $body != "" then "\n  설명: " + $body else "" end) +
+                  (if ($files | length) > 0
+                   then "\n  변경 파일: " + ($files[:8] | map("`" + . + "`") | join(", ")) +
+                     (if ($files | length) > 8 then " 외 " + (($files | length) - 8 | tostring) + "개" else "" end)
+                   else "" end))
+              ] | join("\n\n")
+            ' "$GITHUB_EVENT_PATH")
+            text=$(printf '*%s*에 새 push가 있습니다.\n브랜치: `%s`\n\n*개발 내용*\n%s' \
+              "$REPOSITORY_NAME" "$BRANCH" "$commits")
+          fi
+          jq -n --arg text "$text" '{text: ($text | gsub("https?://[^[:space:]]+"; "[URL 제외]") )}' |
             curl -fsS -X POST \
               -H 'Content-Type: application/json' \
               --data-binary @- \
