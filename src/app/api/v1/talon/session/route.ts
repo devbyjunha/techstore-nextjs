@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { emptyCorsPreflight, jsonWithCors } from '@/lib/http/cors';
 import { updateCustomerSession } from '@/lib/talon/client';
 import { getTalonServerConfig } from '@/lib/talon/config';
 import { mapTalonEffects } from '@/lib/talon/map-effects';
 import type { EvaluateSessionRequest, TalonSessionState } from '@/lib/talon/types';
+import { ONLINE_STORE } from '@/lib/talon/stores';
 
 interface SessionBody {
   sessionId?: string;
@@ -36,7 +38,12 @@ function parseBody(body: SessionBody): EvaluateSessionRequest | string {
       .map((c) => c.trim())
       .filter(Boolean),
     membershipTier: body.membershipTier?.trim() || undefined,
+    storeIntegrationId: ONLINE_STORE.storeIntegrationId,
   };
+}
+
+export async function OPTIONS(request: NextRequest) {
+  return emptyCorsPreflight(request);
 }
 
 /**
@@ -46,7 +53,8 @@ function parseBody(body: SessionBody): EvaluateSessionRequest | string {
 export async function POST(request: NextRequest) {
   const config = getTalonServerConfig();
   if (!config.enabled) {
-    return NextResponse.json(
+    return jsonWithCors(
+      request,
       {
         configured: false,
         error: 'Talon.One is not configured',
@@ -66,12 +74,12 @@ export async function POST(request: NextRequest) {
   try {
     body = (await request.json()) as SessionBody;
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return jsonWithCors(request, { error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const parsed = parseBody(body);
   if (typeof parsed === 'string') {
-    return NextResponse.json({ error: parsed }, { status: 400 });
+    return jsonWithCors(request, { error: parsed }, { status: 400 });
   }
 
   const subtotal =
@@ -81,7 +89,8 @@ export async function POST(request: NextRequest) {
 
   const result = await updateCustomerSession(parsed);
   if (!result.ok || !result.data) {
-    return NextResponse.json(
+    return jsonWithCors(
+      request,
       {
         configured: true,
         sessionId: parsed.sessionId,
@@ -101,7 +110,9 @@ export async function POST(request: NextRequest) {
     sessionId: parsed.sessionId,
     subtotal,
     requestedCoupons: parsed.couponCodes ?? [],
+    ruleFailureReasons: result.data.ruleFailureReasons,
+    campaignEligibility: result.data.campaignEligibility,
   });
 
-  return NextResponse.json(normalized);
+  return jsonWithCors(request, normalized);
 }

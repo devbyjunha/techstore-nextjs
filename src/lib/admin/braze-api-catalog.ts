@@ -86,7 +86,19 @@ export const BRAZE_API_CATALOG: ApiEndpointDefinition[] = [
   // Messages
   ep('messages.send', 'Messages', 'Send Messages', 'POST', '/messages/send', 'Send immediate messages to users.', {
     external_user_ids: ['user_123'],
-    messages: { apple_push: { alert: 'Hello from API tester' } },
+    messages: {
+      apple_push: { alert: 'Hello from API tester' },
+      web_push: {
+        title: 'TechStore 티켓이 도착했습니다',
+        alert: '알림을 클릭하면 이미지가 노트북에 저장됩니다.',
+        custom_uri: 'https://YOUR_PUBLIC_HOST/push-save?action=save_image&image_url=%2Fpoc%2Fpush-save%2Fticket-a.svg&file_name=techstore-ticket-a.svg',
+        extra: {
+          action: 'save_image',
+          image_url: '/poc/push-save/ticket-a.svg',
+          file_name: 'techstore-ticket-a.svg',
+        },
+      },
+    },
   }),
   ep('messages.schedule.create', 'Messages', 'Schedule Messages', 'POST', '/messages/schedule/create', 'Schedule messages.', {
     send_id: 'send_id_here',

@@ -6,6 +6,7 @@
 |----------|------|----------|
 | **1. 발급 (Create)** | Braze/CRM이 회원용 새 코드를 API로 생성 | `create-coupon.mjs` |
 | **2. 이관 (Import)** | Go-live 전 레거시 쿠폰 CSV 적재 | `import-coupons.mjs` |
+| **3. 회원 프로필 이관** | profileId + MembershipTier만 Integration API 적재 | `import-profiles.mjs` |
 
 ## 2번 Import — Dashboard UI로도 되나?
 
@@ -52,7 +53,14 @@ npm run talon:create-coupon
 
 # 시나리오 2 — 레거시 CSV 이관
 npm run talon:import-coupons
+
+# 시나리오 3 — 회원 프로필 이관 (Integration API, Management Key 아님)
+npm run talon:import-profiles
+npm run talon:import-profiles -- --tier-change
 ```
+
+회원 이관 UI: `/admin/talon-profiles`
+시나리오 문서: `docs/TALON-PROFILE-MIGRATION-POC-NOTION.md`
 
 생성/이관된 코드는 **기존 TechStore 장바구니**에 입력해 Integration API 적용을 확인합니다.
 

@@ -17,6 +17,7 @@ import {
   type StoredGiftCardApplication,
 } from '@/lib/talon/browser';
 import type { EvaluateSessionResponse } from '@/lib/talon/types';
+import { getTalonSessionNotifications } from '@/lib/talon/notifications';
 
 export default function CartPage() {
   const { products } = useProducts();
@@ -47,6 +48,20 @@ export default function CartPage() {
     ? Math.min(appliedGiftCard.amount, payableBeforeGiftCard)
     : 0;
   const payable = Math.max(0, payableBeforeGiftCard - giftCardDeduction);
+  const talonNotifications = quote
+    ? getTalonSessionNotifications(quote, totalPrice)
+    : [];
+  const talonStatusMessage = quote?.error
+    ? {
+        title: '프로모션 조회 실패',
+        body: quote.error,
+      }
+    : quote && !quote.configured
+      ? {
+          title: 'Talon.One 연결 확인 필요',
+          body: 'Talon.One에서 프로모션 결과를 확인하지 못했습니다.',
+        }
+      : null;
 
   const evaluateCart = useCallback(
     async (couponCode: string) => {
@@ -351,6 +366,44 @@ export default function CartPage() {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
               <h2 className="text-xl font-bold text-gray-900 mb-4">주문 요약</h2>
+
+              {talonStatusMessage ? (
+                <div
+                  role="alert"
+                  className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900"
+                >
+                  <p className="font-semibold">{talonStatusMessage.title}</p>
+                  <p className="mt-1 text-sm">{talonStatusMessage.body}</p>
+                </div>
+              ) : null}
+
+              {talonNotifications.map((notification, index) => (
+                <div
+                  key={`${notification.campaignId ?? 'talon'}-${notification.title}-${index}`}
+                  role={notification.type === 'error' ? 'alert' : 'status'}
+                  className={`mb-4 rounded-lg border px-4 py-3 ${
+                    notification.type === 'error'
+                      ? 'border-red-200 bg-red-50 text-red-800'
+                      : 'border-blue-200 bg-blue-50 text-blue-800'
+                  }`}
+                >
+                  <p className="font-semibold">{notification.title}</p>
+                  <p className="mt-1 text-sm">{notification.body}</p>
+                  {notification.details?.length ? (
+                    <dl className="mt-3 space-y-2 border-t border-red-200 pt-3">
+                      {notification.details.map((detail, detailIndex) => (
+                        <div
+                          key={`${detail.label}-${detailIndex}`}
+                          className="grid grid-cols-[minmax(7rem,0.8fr)_minmax(0,1.5fr)] gap-2 text-xs"
+                        >
+                          <dt className="font-semibold text-red-900">{detail.label}</dt>
+                          <dd className="break-words whitespace-pre-wrap text-red-800">{detail.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  ) : null}
+                </div>
+              ))}
 
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between text-gray-600">

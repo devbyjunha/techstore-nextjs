@@ -1,0 +1,3 @@
+"value","startdate","expirydate","recipientintegrationid","limitval","discountlimit"
+MIG-GOLD-BOUND,2026-08-13T00:00:00+09:00,2026-12-31T23:59:59+09:00,mig_gold_001,1,
+MIG-SILVER-BOUND,2026-08-13T00:00:00+09:00,2026-12-31T23:59:59+09:00,mig_silver_001,1,

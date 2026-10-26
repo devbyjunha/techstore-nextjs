@@ -33,6 +33,7 @@ import {
   clearStoredGiftCard,
   finalizeTalonSession,
 } from '@/lib/talon/browser';
+import type { TalonDiscountEffect } from '@/lib/talon/types';
 import {
   clearAppSession,
   loadAppSession,
@@ -47,6 +48,8 @@ export interface PlaceOrderParams {
   subtotalValue?: number;
   discountTotal?: number;
   couponCodes?: string[];
+  /** Checkout quote effects, used if the close-session response has no effects. */
+  talonEffects?: TalonDiscountEffect[];
   /** 기프트카드 사용 코드 및 금액 */
   giftCardCode?: string;
   giftCardAmount?: number;
@@ -386,8 +389,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const couponCodes = params?.couponCodes?.filter(Boolean) ?? [];
 
     // Close Talon session before clearing the cart (best-effort).
+    let closedSessionEffects: TalonDiscountEffect[] = [];
     if (state.cartId) {
-      await finalizeTalonSession({
+      const closeResult = await finalizeTalonSession({
         sessionId: state.cartId,
         cart: state.cart,
         isLoggedIn: state.user.isLoggedIn,
@@ -396,6 +400,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         couponCodes,
         state: 'closed',
       });
+      closedSessionEffects = closeResult?.configured && !closeResult.error
+        ? closeResult.effects
+        : params?.talonEffects ?? [];
+    }
+
+    const campaignDiscounts = new Map<number, { discountTotal: number; effectCount: number }>();
+    for (const effect of closedSessionEffects) {
+      if (typeof effect.campaignId !== 'number' || !Number.isFinite(effect.value)) continue;
+      const current = campaignDiscounts.get(effect.campaignId) ?? {
+        discountTotal: 0,
+        effectCount: 0,
+      };
+      current.discountTotal += effect.value;
+      current.effectCount += 1;
+      campaignDiscounts.set(effect.campaignId, current);
     }
 
     const order: Order = {
@@ -410,6 +429,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       giftCardCode: params?.giftCardCode,
       giftCardAmount: params?.giftCardAmount,
       talonSessionId: state.cartId || undefined,
+      talonCampaignDiscounts: [...campaignDiscounts.entries()].map(([campaignId, value]) => ({
+        campaignId,
+        ...value,
+      })),
       status: 'completed',
       createdAt,
       isGuest,

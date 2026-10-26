@@ -123,7 +123,7 @@ export default function GiftCardPanel({ profileId }: { profileId: string }) {
         <input
           value={code}
           onChange={(event) => setCode(event.target.value)}
-          placeholder="기프트카드 코드 입력 (예: GIFT-1000)"
+          placeholder="기프트카드 코드 입력 (예: MXNM-GIFT-XXXX-XXXX)"
           className="flex-1 px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           maxLength={64}
         />
@@ -145,7 +145,7 @@ export default function GiftCardPanel({ profileId }: { profileId: string }) {
         <div className="text-center py-8 text-gray-500 border border-dashed rounded-lg">
           <CreditCard size={40} className="mx-auto mb-3 text-gray-300" />
           <p className="text-sm font-medium">등록된 기프트카드가 없습니다.</p>
-          <p className="text-xs text-gray-400 mt-1">보유하신 기프트카드 번호를 위에 입력해 등록하세요.</p>
+          <p className="text-xs text-gray-400 mt-1">보유하신 기프트카드 번호(예: MXNM-GIFT-XXXX-XXXX)를 위에 입력해 등록하세요.</p>
         </div>
       ) : (
         <ul className="space-y-3">

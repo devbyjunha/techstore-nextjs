@@ -9,6 +9,7 @@ import { AMPLITUDE_EVENTS } from '@/lib/amplitude/events';
 import { syncUserViaAmplitudeApi } from '@/lib/amplitude/analytics';
 import { BRAZE_EVENTS } from '@/lib/braze/events';
 import { syncUserViaBrazeApi } from '@/lib/braze/analytics';
+import { PROFILE_MIGRATION_DEMO_ACCOUNTS } from '@/lib/talon/profile-migration';
 
 type MembershipTier = 'gold' | 'silver';
 
@@ -19,6 +20,40 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { dispatch } = useStore();
+
+  const loginMigratedAccount = async (
+    account: (typeof PROFILE_MIGRATION_DEMO_ACCOUNTS)[number]
+  ) => {
+    setIsLoading(true);
+    try {
+      dispatch({
+        type: 'LOGIN',
+        payload: {
+          name: account.label,
+          email: account.profileId,
+        },
+      });
+
+      await Promise.all([
+        syncUserViaBrazeApi({
+          externalId: account.profileId,
+          email: `${account.profileId}@example.com`,
+          name: account.label,
+          eventName: BRAZE_EVENTS.USER_LOGIN,
+        }),
+        syncUserViaAmplitudeApi({
+          userId: account.profileId,
+          email: `${account.profileId}@example.com`,
+          name: account.label,
+          eventName: AMPLITUDE_EVENTS.USER_LOGIN,
+        }),
+      ]);
+
+      router.push('/mypage');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,6 +232,35 @@ export default function LoginPage() {
             <br />
             (실제 서비스에서는 API 연동이 필요합니다)
           </p>
+        </div>
+
+        <div className="mt-4 p-4 bg-indigo-50 rounded-lg">
+          <h3 className="text-sm font-medium text-indigo-900 mb-1">
+            프로필 이관 PoC 계정
+          </h3>
+          <p className="mb-3 text-xs text-indigo-700">
+            관리자에서 회원을 이관한 뒤 사용하세요. 로그인이 MembershipTier를 보내지
+            않으므로, GOLD 할인은 Talon에 적재된 속성으로만 붙습니다.
+          </p>
+          <div className="space-y-2">
+            {PROFILE_MIGRATION_DEMO_ACCOUNTS.map((account) => (
+              <button
+                key={account.profileId}
+                type="button"
+                disabled={isLoading}
+                onClick={() => void loginMigratedAccount(account)}
+                className="w-full rounded-md border border-indigo-200 bg-white px-3 py-2 text-left text-sm text-indigo-900 hover:bg-indigo-100 disabled:opacity-50"
+              >
+                <span className="font-medium">{account.label}</span>
+                <span className="mt-0.5 block font-mono text-xs text-indigo-600">
+                  profileId={account.profileId}
+                  {account.membershipTierOnTalon
+                    ? ` · Talon=${account.membershipTierOnTalon}`
+                    : ' · Talon 등급 없음'}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

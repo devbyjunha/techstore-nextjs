@@ -1,0 +1,8 @@
+profileId,MembershipTier,scenario,legacy_email,legacy_display_name,legacy_phone,notes
+mig_gold_001,GOLD,S1_GOLD_BONUS,mig_gold_001@example.com,PoC Gold Member 001,REDACTED,C3 applies without client sending tier
+mig_gold_002,GOLD,S1_GOLD_BONUS,mig_gold_002@example.com,PoC Gold Member 002,REDACTED,Second GOLD profile
+mig_silver_001,SILVER,S2_NO_GOLD_BONUS,mig_silver_001@example.com,PoC Silver Member 001,REDACTED,C1 only — no GOLD bonus
+mig_silver_002,SILVER,S2_NO_GOLD_BONUS,mig_silver_002@example.com,PoC Silver Member 002,REDACTED,Second SILVER profile
+mig_none_001,,S3_NO_TIER,mig_none_001@example.com,PoC No Tier 001,REDACTED,Profile exists but MembershipTier omitted
+demo_user_001,GOLD,S5_COUPON_RECIPIENT,demo_user_001@example.com,PoC Coupon Recipient Gold,REDACTED,Matches coupon recipientintegrationid
+demo_user_002,SILVER,S5_COUPON_RECIPIENT,demo_user_002@example.com,PoC Coupon Recipient Silver,REDACTED,Matches coupon recipientintegrationid

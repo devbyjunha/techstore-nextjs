@@ -156,6 +156,23 @@ export const API_DOC_SECTIONS: ApiDocSection[] = [
         auth: 'BRAZE_WEBHOOK_SECRET 설정 시 X-Braze-Webhook-Secret 헤더',
       },
       {
+        id: 'push-save',
+        method: 'GET',
+        path: '/api/v1/push-save',
+        title: '웹 푸시 Extra Keys 이미지 다운로드 (PoC)',
+        description:
+          'Braze 웹 푸시 클릭 시 /poc/push-save/ 아래 정적 샘플만 첨부 파일로 내려줍니다. 알림 클릭이 인증 헤더를 보낼 수 없어 공개 GET입니다.',
+        queryParams: [
+          { name: 'image_url', description: '/poc/push-save/ 경로', example: '/poc/push-save/ticket-a.svg' },
+          { name: 'file_name', description: '저장 파일명', example: 'techstore-ticket-a.svg' },
+        ],
+        notes: [
+          '경로 순회·다른 호스트 URL은 400입니다.',
+          '관리자 PoC UI: /admin/push-save-poc',
+          '가이드: docs/BRAZE-PUSH-SAVE-POC.md',
+        ],
+      },
+      {
         id: 'connected-content-coupon',
         method: 'POST',
         path: '/api/v1/connected-content/coupon',

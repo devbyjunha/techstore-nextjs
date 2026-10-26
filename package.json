@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -11,12 +11,13 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "talon:create-coupon": "node --env-file=.env.local scripts/talon-management/create-coupon.mjs",
-    "talon:import-coupons": "node --env-file=.env.local scripts/talon-management/import-coupons.mjs"
+    "talon:import-coupons": "node --env-file=.env.local scripts/talon-management/import-coupons.mjs",
+    "talon:import-profiles": "node --env-file=.env.local scripts/talon-management/import-profiles.mjs"
   },
   "dependencies": {
     "@amplitude/analytics-browser": "^2.42.3",
     "@amplitude/analytics-node": "^1.5.57",
-    "@braze/web-sdk": "^6.7.1",
+    "@braze/web-sdk": "^6.13.0",
     "lucide-react": "^0.542.0",
     "next": "^16.2.6",
     "react": "19.1.0",

@@ -1,0 +1,2 @@
+profileId,MembershipTier,scenario,legacy_email,legacy_display_name,legacy_phone,notes
+mig_gold_001,SILVER,S7_OVERWRITE,mig_gold_001@example.com,PoC Gold Member 001,REDACTED,Re-import GOLD user as SILVER

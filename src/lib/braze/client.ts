@@ -15,6 +15,7 @@ import {
   buildProductViewedProperties,
 } from './ecommerce';
 import type { CartItem, Product } from '@/types';
+import { installIamExperimentWrapper } from './iam-experiment';
 
 type BrazeModule = typeof import('@braze/web-sdk');
 
@@ -66,9 +67,12 @@ export async function initializeBraze(): Promise<boolean> {
       baseUrl: config.sdkEndpoint,
       enableLogging: config.enableLogging,
       allowUserSuppliedJavascript: true,
+      serviceWorkerLocation: '/service-worker.js',
     });
 
-    braze.automaticallyShowInAppMessages();
+    // 기본 Control Group 대신 Extra `experiment_group=cg` Variant를 대조군으로 사용.
+    // automaticallyShowInAppMessages()는 호출하지 않고, openSession 전에 Wrapper를 설치합니다.
+    installIamExperimentWrapper(braze);
     isInitialized = true;
 
     if (isLocalEnv()) {
@@ -145,6 +149,16 @@ export async function getBrazeExternalUserId(): Promise<string | null> {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function resetBrazeInitState(): void {
+  isInitialized = false;
+  initPromise = null;
+}
+
+/**
+ * 로그아웃: 현재 사용자의 푸시 토큰을 해제한 뒤 SDK를 비활성화하고 로컬 데이터를 지웁니다.
+ * 성공하면 enableSDK + initialize + openSession으로 새 비회원(anonymous) 프로필 세션을 엽니다.
+ * logout 실패 시에는 기존 식별 사용자를 유지합니다.
+ */
 export async function clearBrazeUser(): Promise<void> {
   if (!isInitialized) {
     return;
@@ -155,8 +169,31 @@ export async function clearBrazeUser(): Promise<void> {
     return;
   }
 
-  braze.wipeData();
-  braze.openSession();
+  await new Promise<void>((resolve) => {
+    braze.requestImmediateDataFlush(() => resolve());
+  });
+
+  const loggedOut = await new Promise<boolean>((resolve) => {
+    braze.logout(
+      () => resolve(true),
+      () => resolve(false)
+    );
+  });
+
+  if (!loggedOut) {
+    return;
+  }
+
+  resetBrazeInitState();
+  braze.enableSDK();
+
+  const ready = await initializeBraze();
+  if (!ready) {
+    return;
+  }
+
+  braze.subscribeToBannersUpdates(() => {});
+  await openBrazeSession();
 }
 
 export async function logBrazeCustomEvent(

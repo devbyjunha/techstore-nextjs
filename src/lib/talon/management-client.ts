@@ -287,6 +287,32 @@ export async function importManagementCouponsBulk(params: {
   });
 }
 
+/**
+ * Coupons reserved to migrated profileIds (recipientintegrationid).
+ * Codes are unique per click so the admin button can be re-run.
+ */
+export async function importMemberBoundCouponsSample(): Promise<
+  TalonManagementResult<{ amount: number; codes: string[]; raw: unknown }>
+> {
+  const stamp = buildImportStamp();
+  const start = '2026-08-13T00:00:00+09:00';
+  const end = '2026-12-31T23:59:59+09:00';
+
+  const codes = [`MIG-${stamp}-GOLD`, `MIG-${stamp}-SILVER`];
+
+  const csv = [
+    '"value","startdate","expirydate","recipientintegrationid","limitval","discountlimit"',
+    `${codes[0]},${start},${end},mig_gold_001,1,`,
+    `${codes[1]},${start},${end},mig_silver_001,1,`,
+  ].join('\n');
+
+  return postImportCsv({
+    csv,
+    filename: `member-bound-${stamp}.csv`,
+    codes,
+  });
+}
+
 export function getManagementPoCMeta() {
   const config = getTalonManagementConfig();
   return {
@@ -294,4 +320,85 @@ export function getManagementPoCMeta() {
     applicationId: config.applicationId || null,
     couponCampaignId: config.couponCampaignId || null,
   };
+}
+
+/** Store entity from Talon.One Management API */
+export interface TalonManagementStore {
+  id: number;
+  created: string;
+  name: string;
+  description?: string;
+  storeIntegrationId?: string;
+  integrationId?: string;
+  attributes?: Record<string, unknown>;
+}
+
+function storesPath(suffix = ''): string {
+  const { applicationId } = getTalonManagementConfig();
+  return `/v1/applications/${applicationId}/stores${suffix}`;
+}
+
+/** Get list of stores in the Application */
+export async function getManagementStores(): Promise<
+  TalonManagementResult<TalonManagementStore[]>
+> {
+  const result = await managementFetch<{ data?: TalonManagementStore[] } | TalonManagementStore[]>(
+    storesPath(),
+    { method: 'GET' }
+  );
+
+  if (!result.ok) {
+    return { ok: false, status: result.status, error: result.error };
+  }
+
+  const raw = result.data;
+  const list = Array.isArray(raw)
+    ? raw
+    : Array.isArray((raw as { data?: TalonManagementStore[] })?.data)
+      ? (raw as { data: TalonManagementStore[] }).data
+      : [];
+
+  return { ok: true, status: result.status, data: list };
+}
+
+/** Create a new store */
+export async function createManagementStore(params: {
+  name: string;
+  storeIntegrationId: string;
+  description?: string;
+}): Promise<TalonManagementResult<TalonManagementStore>> {
+  return managementFetch<TalonManagementStore>(storesPath(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: params.name,
+      integrationId: params.storeIntegrationId,
+      description: params.description,
+    }),
+  });
+}
+
+/** Update an existing store by storeId */
+export async function updateManagementStore(params: {
+  storeId: number | string;
+  name: string;
+  description?: string;
+}): Promise<TalonManagementResult<TalonManagementStore>> {
+  return managementFetch<TalonManagementStore>(storesPath(`/${params.storeId}`), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: params.name,
+      description: params.description,
+    }),
+  });
+}
+
+/** Delete a store by storeId */
+export async function deleteManagementStore(
+  storeId: number | string
+): Promise<TalonManagementResult<unknown>> {
+  return managementFetch<unknown>(storesPath(`/${storeId}`), {
+    method: 'DELETE',
+  });
 }

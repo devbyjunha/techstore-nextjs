@@ -8,7 +8,11 @@
 1. Notion 왼쪽 사이드바 **Settings** (또는 워크스pace 이름) 클릭
 2. **Import** 선택
 3. **Markdown & CSV** → **Upload**
-4. 파일 선택: `TALON-ONE-POC-NOTION.md`
+4. 파일 선택:
+   - Integration 세션 PoC: `TALON-ONE-POC-NOTION.md`
+   - Management API + Braze CC PoC: `TALON-MANAGEMENT-BRAZE-CC-POC-NOTION.md`
+   - 회원 프로필 이관 PoC: `TALON-PROFILE-MIGRATION-POC-NOTION.md`
+   - **도입·이관·식별자 가이드:** `TALON-INTRODUCTION-MIGRATION-NOTION.md`
 5. Import 완료 후 새 페이지가 생성됨 → 제목·표·체크리스트가 자동 변환됨
 
 ## 방법 2 — HTML Import
@@ -40,9 +44,12 @@
 
 ```
 techstore-nextjs/docs/
-  TALON-ONE-POC-NOTION.md      ← Import용 Markdown (최신)
-  TALON-ONE-POC-NOTION.html    ← Import용 HTML
-  TALON-ONE-POC-NOTION-IMPORT.md  ← 이 가이드
+  TALON-INTRODUCTION-MIGRATION-NOTION.md  ← 도입·이관·식별자 가이드 (Notion)
+  TALON-ONE-POC-NOTION.md                 ← Import용 Markdown (세션 PoC)
+  TALON-ONE-POC-NOTION.html               ← Import용 HTML
+  TALON-ONE-POC-NOTION-IMPORT.md          ← 이 가이드
+  TALON-PROFILE-MIGRATION-POC-NOTION.md   ← 회원 프로필 이관 PoC
+  TALON-MANAGEMENT-BRAZE-CC-POC-NOTION.md ← 쿠폰 Management + Braze CC
 ```
 
 ## 이미 Notion에 Import한 경우

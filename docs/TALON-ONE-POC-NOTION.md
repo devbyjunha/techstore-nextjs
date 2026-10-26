@@ -337,6 +337,7 @@ src/components/talon/TalonDiscountAccordion.tsx  ← 표시만
 - [ ] Free item / bundle 캠페인
 - [ ] 운영 UI에서 Talon 문구 제거 (할인 금액만 표시)
 - [ ] (실도입) 레거시 쿠폰·로열티·프로필 Import — §13 참고
+- [x] (PoC) 회원 프로필 최소 이관 — `docs/TALON-PROFILE-MIGRATION-POC-NOTION.md`
 
 ---
 
@@ -350,6 +351,7 @@ src/components/talon/TalonDiscountAccordion.tsx  ← 표시만
 | Talon Integration API | https://docs.talon.one/docs/dev/integration-api/overview |
 | Talon Management API | https://docs.talon.one/docs/dev/management-api/overview |
 | API 비교·Import 가이드 | 이 문서 §12, §13 |
+| 회원 프로필 이관 PoC | `docs/TALON-PROFILE-MIGRATION-POC-NOTION.md` |
 | Talon Dashboard | Campaign Manager → TechStore Application |
 
 ---
@@ -473,7 +475,7 @@ src/components/talon/TalonDiscountAccordion.tsx  ← 표시만
 - [ ] (필요 시) 레거시 쿠폰 CSV → `import_coupons`
 - [ ] (필요 시) 이미 사용된 쿠폰 → Integration closed session으로 redeemed 마킹
 - [ ] (필요 시) 로열티 `import_points` / `import_cards`
-- [ ] (필요 시) 프로필·과거 주문 배치 (Integration API)
+- [ ] (필요 시) 프로필·과거 주문 배치 (Integration API) — 회원 프로필 PoC: `docs/TALON-PROFILE-MIGRATION-POC-NOTION.md`, `/admin/talon-profiles`
 - [ ] BFF에서 Integration API로 실시간 연동 (PoC와 동일 레이어)
 - [ ] Management Key / Integration Key 권한·보관 분리
 

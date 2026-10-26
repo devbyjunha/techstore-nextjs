@@ -38,6 +38,12 @@ export interface OrderRefund {
   createdAt: Date;
 }
 
+export interface OrderCampaignDiscount {
+  campaignId: number;
+  discountTotal: number;
+  effectCount: number;
+}
+
 export interface Order {
   id: string;
   cartId: string;
@@ -52,6 +58,8 @@ export interface Order {
   couponCodes?: string[];
   /** Talon customer session id (= cartId) */
   talonSessionId?: string;
+  /** Talon campaign attribution captured when the customer session is closed. */
+  talonCampaignDiscounts?: OrderCampaignDiscount[];
   status: OrderStatus;
   createdAt: Date;
   /** 누적 부분·전체 환불 내역 */

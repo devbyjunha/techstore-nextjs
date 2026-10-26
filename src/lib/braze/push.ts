@@ -1,6 +1,10 @@
 'use client';
 
 import { getBrazeModule, isBrazeInitialized } from './client';
+import {
+  buildWebPushExtraPayload,
+  type PushSaveSample,
+} from './push-save';
 
 export type BrazePushStatus =
   | 'unsupported'
@@ -107,4 +111,31 @@ export async function unregisterBrazePush(): Promise<boolean> {
       () => resolve(false)
     );
   });
+}
+
+export async function sendLocalPushSaveNotification(
+  sample: PushSaveSample
+): Promise<{ ok: boolean; error?: string }> {
+  if (
+    typeof window === 'undefined' ||
+    !('serviceWorker' in navigator) ||
+    !('Notification' in window)
+  ) {
+    return { ok: false, error: 'unsupported' };
+  }
+
+  if (Notification.permission !== 'granted') {
+    return { ok: false, error: 'permission' };
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  await registration.showNotification('TechStore 티켓이 도착했습니다', {
+    body: `${sample.label} · 알림을 클릭하면 이미지가 노트북에 저장됩니다.`,
+    icon: '/file.svg',
+    data: {
+      extra: buildWebPushExtraPayload(sample),
+    },
+  });
+
+  return { ok: true };
 }

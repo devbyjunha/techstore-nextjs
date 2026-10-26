@@ -9,6 +9,7 @@
 | [README.md](../README.md) | 처음 보는 사람용 요약, 설치·실행·Git 치트시트 |
 | [docs/PROJECT.md](./PROJECT.md) | 아키텍처·구조·환경 변수 (현재 문서) |
 | [docs/BRAZE-BANNERS.md](./BRAZE-BANNERS.md) | Braze Banners Web 연동 실무 가이드 (PDP PoC) |
+| [docs/BRAZE-PUSH-SAVE-POC.md](./BRAZE-PUSH-SAVE-POC.md) | 웹 푸시 Extra Keys → 노트북 파일 다운로드 PoC |
 | [docs/TALON-ONE-POC.md](./TALON-ONE-POC.md) | Talon.One 프로모션·로열티 PoC (Dashboard·API·체크리스트) |
 | [.env.example](../.env.example) | 환경 변수 키 목록 (값은 직접 입력) |
 
@@ -219,6 +220,8 @@ techstore-nextjs/
 | `/search` | `app/search/page.tsx` | 검색 |
 | `/login` | `app/login/page.tsx` | 로그인 (데모) + 서버 API 동기화 |
 | `/mypage` | `app/mypage/page.tsx` | 마이페이지 |
+| `/push-save` | `app/push-save/page.tsx` | 웹 푸시 Extra Key 클릭 시 이미지 다운로드 |
+| `/admin/push-save-poc` | `app/admin/push-save-poc/page.tsx` | 웹 푸시 저장 PoC 하니스 |
 | `POST /api/2/httpapi` | `app/api/2/httpapi/route.ts` | Amplitude HTTP V2 (공식 경로와 동일) |
 | `POST /api/users/track` | `app/api/users/track/route.ts` | Braze Users Track (공식 경로와 동일) |
 | `GET /api/v1/health` | `app/api/v1/health/route.ts` | 헬스체크 (Webhook 연결 테스트) |
@@ -226,6 +229,8 @@ techstore-nextjs/
 | `GET /api/v1/products/:productId` | `app/api/v1/products/[productId]/route.ts` | 상품 단건 |
 | `GET /api/v1/categories` | `app/api/v1/categories/route.ts` | 카테고리 목록 |
 | `POST /api/v1/webhooks/braze` | `app/api/v1/webhooks/braze/route.ts` | Braze Webhook Campaign 수신 |
+| `GET /api/v1/webhooks/braze` | `app/api/v1/webhooks/braze/route.ts` | Braze Webhook 연결 확인 |
+| `GET /api/v1/push-save` | `app/api/v1/push-save/route.ts` | 웹 푸시 PoC 정적 에셋 다운로드 |
 
 ---
 
