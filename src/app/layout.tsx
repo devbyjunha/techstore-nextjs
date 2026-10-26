@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/context/StoreContext";
 import { ProductsProvider } from "@/context/ProductsContext";
 import AmplitudeProvider from "@/components/AmplitudeProvider";
 import BrazeProvider from "@/components/BrazeProvider";
 import AppShell from "@/components/AppShell";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "TechStore - 최신 기술 제품 쇼핑몰",
@@ -21,7 +18,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={inter.className}>
+      <body>
         <AmplitudeProvider>
         <BrazeProvider>
           <StoreProvider>

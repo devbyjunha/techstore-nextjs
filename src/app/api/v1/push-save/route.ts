@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   }
 
   const asciiName = result.fileName.replace(/[^\x20-\x7E]/g, '_');
-  return new NextResponse(result.file, {
+  return new NextResponse(Uint8Array.from(result.file), {
     status: 200,
     headers: {
       'Content-Type': result.contentType,

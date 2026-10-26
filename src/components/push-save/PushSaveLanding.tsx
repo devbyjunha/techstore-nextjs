@@ -40,13 +40,14 @@ export default function PushSaveLanding() {
       return;
     }
 
+    const fileName = extras.fileName;
     let cancelled = false;
 
     async function run() {
       setState('downloading');
       const result = await downloadPushSaveFile({
         downloadUrl,
-        fileName: extras.fileName,
+        fileName,
       });
       if (cancelled) {
         return;

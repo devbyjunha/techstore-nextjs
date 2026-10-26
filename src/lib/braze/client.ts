@@ -15,7 +15,10 @@ import {
   buildProductViewedProperties,
 } from './ecommerce';
 import type { CartItem, Product } from '@/types';
-import { installIamExperimentWrapper } from './iam-experiment';
+import {
+  installIamExperimentWrapper,
+  type IamExperimentBraze,
+} from './iam-experiment';
 
 type BrazeModule = typeof import('@braze/web-sdk');
 
@@ -72,7 +75,19 @@ export async function initializeBraze(): Promise<boolean> {
 
     // 기본 Control Group 대신 Extra `experiment_group=cg` Variant를 대조군으로 사용.
     // automaticallyShowInAppMessages()는 호출하지 않고, openSession 전에 Wrapper를 설치합니다.
-    installIamExperimentWrapper(braze);
+    const iamExperimentBraze: IamExperimentBraze = {
+      subscribeToInAppMessage: (callback) =>
+        braze.subscribeToInAppMessage((message) => callback(message)),
+      showInAppMessage: (message) =>
+        braze.showInAppMessage(
+          message as Parameters<typeof braze.showInAppMessage>[0]
+        ),
+      logInAppMessageImpression: (message) =>
+        braze.logInAppMessageImpression(
+          message as Parameters<typeof braze.logInAppMessageImpression>[0]
+        ),
+    };
+    installIamExperimentWrapper(iamExperimentBraze);
     isInitialized = true;
 
     if (isLocalEnv()) {
